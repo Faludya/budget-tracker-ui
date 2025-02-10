@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { alpha, styled } from '@mui/material/styles';
+import { Link } from "react-router-dom";
 import Box from '@mui/material/Box';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -12,7 +13,7 @@ import Drawer from '@mui/material/Drawer';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ColorModeIconDropdown from '../shared-theme/ColorModeIconDropdown';
-import Sitemark from './SitemarkIcon';
+import Sitemark from '../components/SitemarkIcon';
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: 'flex',
@@ -51,25 +52,21 @@ export default function AppAppBar() {
       <Container maxWidth="lg">
         <StyledToolbar variant="dense" disableGutters>
           <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', px: 0 }}>
-            <Sitemark />
+            <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Sitemark />
+            </Link>
             <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
               <Button variant="text" color="info" size="small">
                 Features
               </Button>
-              <Button variant="text" color="info" size="small">
-                Testimonials
+              <Button variant="text" color="info" size="small" sx={{ minWidth: 0 }} component={Link} to="/privacy">
+                Privacy
               </Button>
-              <Button variant="text" color="info" size="small">
-                Highlights
+              <Button variant="text" color="info" size="small" sx={{ minWidth: 0 }} component={Link} to="/contactus">
+                Contact
               </Button>
-              <Button variant="text" color="info" size="small">
-                Pricing
-              </Button>
-              <Button variant="text" color="info" size="small" sx={{ minWidth: 0 }}>
-                FAQ
-              </Button>
-              <Button variant="text" color="info" size="small" sx={{ minWidth: 0 }}>
-                Blog
+              <Button variant="text" color="info" size="small" sx={{ minWidth: 0 }} component={Link} to="/budget-tracker">
+                Budget
               </Button>
             </Box>
           </Box>
@@ -80,10 +77,10 @@ export default function AppAppBar() {
               alignItems: 'center',
             }}
           >
-            <Button color="primary" variant="text" size="small">
+            <Button color="primary" variant="text" size="small" component={Link} to="/signin">
               Sign in
             </Button>
-            <Button color="primary" variant="contained" size="small">
+            <Button color="primary" variant="contained" size="small" component={Link} to="/signup">
               Sign up
             </Button>
             <ColorModeIconDropdown />
@@ -115,19 +112,17 @@ export default function AppAppBar() {
                   </IconButton>
                 </Box>
                 <MenuItem>Features</MenuItem>
-                <MenuItem>Testimonials</MenuItem>
-                <MenuItem>Highlights</MenuItem>
-                <MenuItem>Pricing</MenuItem>
-                <MenuItem>FAQ</MenuItem>
-                <MenuItem>Blog</MenuItem>
+                <MenuItem>Privacy</MenuItem>
+                <MenuItem>Contact</MenuItem>
+                <MenuItem>Budget</MenuItem>
                 <Divider sx={{ my: 3 }} />
                 <MenuItem>
-                  <Button color="primary" variant="contained" to="/signup" fullWidth>
+                  <Button color="primary" variant="contained" component={Link} to="/signup" fullWidth>
                     Sign up
                   </Button>
                 </MenuItem>
                 <MenuItem>
-                  <Button color="primary" variant="outlined" to="/signin" fullWidth>
+                  <Button color="primary" variant="outlined" component={Link} to="/signin" fullWidth>
                     Sign in
                   </Button>
                 </MenuItem>
