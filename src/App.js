@@ -6,7 +6,7 @@ import ContactUs from "./pages/ContactUs"
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Navbar from "./components/Navbar"; 
-
+import ProtectedRoute from "./pages/ProtectedRoute";
 import BudgetTracker from "./pages/BudgetTracker";
 
 import Footer from "./components/Footer"; // Keep Footer global if needed
@@ -35,7 +35,9 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/contactus" element={<ContactUs />} />
-            <Route path="/budget-tracker" element={<BudgetTracker />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/budget-tracker" element={<BudgetTracker />} />
+            </Route>
           </Routes>
         </Container>
 
