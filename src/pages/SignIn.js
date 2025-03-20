@@ -105,9 +105,11 @@ export default function SignIn(props) {
 
     try {
       const response = await axios.post("https://localhost:7288/api/users/login", credentials);
+      const { token, userId } = response.data; 
 
-      if (response.data.token) {
+      if (token) {
         localStorage.setItem("authToken", response.data.token);
+        localStorage.setItem("userId", userId);
         setSnackbar({ open: true, message: "Login successful!", severity: "success" });
 
         // Redirect after login

@@ -2,17 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { alpha, styled } from "@mui/material/styles";
 import { Link } from "react-router-dom";
-import {
-  Box,
-  AppBar,
-  Toolbar,
-  Button,
-  IconButton,
-  Container,
-  Divider,
-  MenuItem,
-  Drawer,
-} from "@mui/material";
+import { Box, AppBar, Toolbar, Button, IconButton, Container, Divider, MenuItem, Drawer,} from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import ColorModeIconDropdown from "../shared-theme/ColorModeIconDropdown";
@@ -44,6 +34,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("userId");
     setIsAuthenticated(false); 
     navigate("");
     window.location.reload();
