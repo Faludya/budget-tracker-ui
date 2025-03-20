@@ -4,7 +4,7 @@ import apiClient from "../api/axiosConfig";
 
 const useTransactionForm = (setTransactions) => {
   const [formData, setFormData] = useState(TransactionModel);
-  const [currentTransaction, setCurrentTransaction] = useState(null);
+  const [setCurrentTransaction] = useState(null);
   const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
@@ -25,23 +25,57 @@ const useTransactionForm = (setTransactions) => {
 
   const handleSubmit = async () => {
     try {
-      if (currentTransaction) {
-        await apiClient.put(`/transactions/${currentTransaction.id}`, formData);
-      } else {
-        await apiClient.post("/transactions", formData);
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        console.error("❌ UserId is missing in localStorage");
+        return;
       }
-
-      // Refresh transactions
-      const response = await apiClient.get("/transactions");
-      setTransactions(response.data);
-
-      setSnackbar({ open: true, message: "Transaction saved successfully!", severity: "success" });
+  
+      const transactionData = {
+        ...formData,
+        userId: userId,
+        amount: parseFloat(formData.amount),
+        categoryId: parseInt(formData.categoryId),
+        currencyId: parseInt(formData.currencyId),
+        date: new Date(formData.date).toISOString(), // ✅ Convert to UTC
+      };
+  
+      console.log("🚀 Sending Transaction Data:", transactionData);
+  
+      let response;
+      if (formData.id) {
+        // ✅ Update existing transaction
+        response = await apiClient.put(`/transactions/${formData.id}`, transactionData);
+      } else {
+        // ✅ Create new transaction
+        response = await apiClient.post("/transactions", transactionData);
+      }
+  
+      console.log("✅ Transaction Saved:", response.data);
+  
+      // ✅ Update table by adding the new transaction
+      setTransactions((prev) => {
+        if (formData.id) {
+          // Update existing transaction
+          return prev.map((t) => (t.id === formData.id ? response.data : t));
+        } else {
+          // Add new transaction
+          return [...prev, response.data];
+        }
+      });
+  
+      setSnackbar({ open: true, message: "Transaction saved!", severity: "success" });
+  
+      // ✅ Close modal
       handleClose();
+  
     } catch (error) {
-      console.error("Error saving transaction:", error);
-      setSnackbar({ open: true, message: "Failed to save transaction.", severity: "error" });
+      console.error("❌ API Error:", error.response?.data || error);
+      setSnackbar({ open: true, message: "Error saving transaction", severity: "error" });
     }
   };
+  
+  
 
   const handleDelete = async (id) => {
     try {
