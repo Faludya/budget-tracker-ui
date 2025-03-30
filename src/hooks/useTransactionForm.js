@@ -4,7 +4,7 @@ import apiClient from "../api/axiosConfig";
 
 const useTransactionForm = (setTransactions) => {
   const [formData, setFormData] = useState(TransactionModel);
-  const [setCurrentTransaction] = useState(null);
+  const [currentTransaction, setCurrentTransaction] = useState(null);
   const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
@@ -37,36 +37,27 @@ const useTransactionForm = (setTransactions) => {
         amount: parseFloat(formData.amount),
         categoryId: parseInt(formData.categoryId),
         currencyId: parseInt(formData.currencyId),
-        date: new Date(formData.date).toISOString(), // ✅ Convert to UTC
+        date: new Date(formData.date).toISOString(),
       };
   
       console.log("🚀 Sending Transaction Data:", transactionData);
   
-      let response;
+      // 🔄 Create or update transaction
       if (formData.id) {
-        // ✅ Update existing transaction
-        response = await apiClient.put(`/transactions/${formData.id}`, transactionData);
+        await apiClient.put(`/transactions/${formData.id}`, transactionData);
       } else {
-        // ✅ Create new transaction
-        response = await apiClient.post("/transactions", transactionData);
+        await apiClient.post("/transactions", transactionData);
       }
   
-      console.log("✅ Transaction Saved:", response.data);
-  
-      // ✅ Update table by adding the new transaction
-      setTransactions((prev) => {
-        if (formData.id) {
-          // Update existing transaction
-          return prev.map((t) => (t.id === formData.id ? response.data : t));
-        } else {
-          // Add new transaction
-          return [...prev, response.data];
-        }
+      // ✅ Refresh the entire transaction list
+      const refreshed = await apiClient.get("/transactions", {
+        headers: { userId }
       });
   
-      setSnackbar({ open: true, message: "Transaction saved!", severity: "success" });
+      console.log("🔄 Refreshed transactions:", refreshed.data);
+      setTransactions(refreshed.data);
   
-      // ✅ Close modal
+      setSnackbar({ open: true, message: "Transaction saved!", severity: "success" });
       handleClose();
   
     } catch (error) {
@@ -74,6 +65,7 @@ const useTransactionForm = (setTransactions) => {
       setSnackbar({ open: true, message: "Error saving transaction", severity: "error" });
     }
   };
+  
   
   
 

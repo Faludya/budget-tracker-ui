@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom'; 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -16,6 +17,7 @@ import { styled } from '@mui/material/styles';
 import AppTheme from '../shared-theme/AppTheme';
 import GoogleIcon from '../components/CustomIcons';
 import SitemarkIcon from '../components/SitemarkIcon';
+import axios from "axios";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -70,9 +72,22 @@ export default function SignUp(props) {
   const validateInputs = () => {
     const email = document.getElementById('email');
     const password = document.getElementById('password');
-    const name = document.getElementById('name');
-
+    const firstName = document.getElementById('firstName');
+    const lastName = document.getElementById('lastName');
     let isValid = true;
+
+    if (!firstName.value || firstName.value.length < 1) {
+      setNameError(true);
+      setNameErrorMessage('First name is required.');
+      isValid = false;
+    } else if (!lastName.value || lastName.value.length < 1) {
+      setNameError(true);
+      setNameErrorMessage('Last name is required.');
+      isValid = false;
+    } else {
+      setNameError(false);
+      setNameErrorMessage('');
+    }
 
     if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) {
       setEmailError(true);
@@ -92,30 +107,48 @@ export default function SignUp(props) {
       setPasswordErrorMessage('');
     }
 
-    if (!name.value || name.value.length < 1) {
-      setNameError(true);
-      setNameErrorMessage('Name is required.');
-      isValid = false;
-    } else {
-      setNameError(false);
-      setNameErrorMessage('');
-    }
 
     return isValid;
   };
 
-  const handleSubmit = (event) => {
-    if (nameError || emailError || passwordError) {
-      event.preventDefault();
-      return;
-    }
+  const navigate = useNavigate();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!validateInputs()) return;
+
     const data = new FormData(event.currentTarget);
-    console.log({
-      name: data.get('name'),
+
+    const registerPayload = {
+      firstName: data.get('firstName'),
       lastName: data.get('lastName'),
       email: data.get('email'),
       password: data.get('password'),
-    });
+    };
+
+    try {
+      // 🔐 Register the user
+      await axios.post('https://localhost:7288/api/users/register', registerPayload);
+
+      // 🔑 Auto login
+      const loginPayload = {
+        email: registerPayload.email,
+        password: registerPayload.password,
+      };
+
+      const responseLogin = await axios.post("https://localhost:7288/api/users/login", loginPayload);
+      const { token, userId } = responseLogin.data;
+
+      // 💾 Store in localStorage
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userId', userId);
+
+      // 🚀 Redirect to dashboard
+      navigate('/budget-tracker');
+    } catch (error) {
+      console.error('Registration or login failed:', error);
+      // Optionally show a toast or message here
+    }
   };
 
   return (
@@ -137,19 +170,35 @@ export default function SignUp(props) {
             sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
           >
             <FormControl>
-              <FormLabel htmlFor="name">Full name</FormLabel>
+              <FormLabel htmlFor="firstName">First name</FormLabel>
               <TextField
-                autoComplete="name"
-                name="name"
+                autoComplete="given-name"
+                name="firstName"
                 required
                 fullWidth
-                id="name"
-                placeholder="Jon Snow"
+                id="firstName"
+                placeholder="Jon"
                 error={nameError}
                 helperText={nameErrorMessage}
                 color={nameError ? 'error' : 'primary'}
               />
             </FormControl>
+
+            <FormControl>
+              <FormLabel htmlFor="lastName">Last name</FormLabel>
+              <TextField
+                autoComplete="family-name"
+                name="lastName"
+                required
+                fullWidth
+                id="lastName"
+                placeholder="Snow"
+                error={nameError}
+                helperText={nameErrorMessage}
+                color={nameError ? 'error' : 'primary'}
+              />
+            </FormControl>
+
             <FormControl>
               <FormLabel htmlFor="email">Email</FormLabel>
               <TextField

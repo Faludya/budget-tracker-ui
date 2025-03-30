@@ -11,15 +11,23 @@ const TransactionsTable = () => {
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
-        const response = await apiClient.get("/transactions");
+        const userId = localStorage.getItem("userId"); 
+  
+        const response = await apiClient.get("/transactions", {
+          headers: {
+            userId: userId,
+          },
+        });
+  
         setTransactions(response.data);
       } catch (error) {
         console.error("Error fetching transactions:", error);
       }
     };
-
+  
     fetchTransactions();
   }, []);
+  
 
   const columns = [
     { field: "type", headerName: "Type", flex: 1 },
