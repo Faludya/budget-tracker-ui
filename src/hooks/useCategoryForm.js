@@ -4,8 +4,8 @@ import apiClient from "../api/axiosConfig";
 
 const useCategoryForm = (setCategories) => {
   const [formData, setFormData] = useState(CategoryModel);
-  const [open, setOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(null);
+  const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const handleOpen = (category = null) => {
@@ -26,13 +26,24 @@ const useCategoryForm = (setCategories) => {
   const handleSubmit = async () => {
     try {
       const userId = localStorage.getItem("userId");
+      if (!userId) {
+        console.error("❌ UserId is missing in localStorage");
+        return;
+      }
+
       const categoryData = {
         ...formData,
         userId,
-        parentCategoryId: parseInt(formData.parentCategoryId) || null,
-        isPredefined: false,
-        createdAt: new Date().toISOString()
+        parentCategoryId: formData.parentCategoryId ? parseInt(formData.parentCategoryId) : null,
+        createdAt: new Date().toISOString(),
       };
+      
+
+      if (!formData.id) {
+        delete categoryData.id;
+      }
+
+      console.log("🚀 Sending Category Data:", categoryData);
 
       if (formData.id) {
         await apiClient.put(`/categories/${formData.id}`, categoryData);
@@ -40,13 +51,14 @@ const useCategoryForm = (setCategories) => {
         await apiClient.post("/categories", categoryData);
       }
 
-      // Refresh categories
-      const response = await apiClient.get("/categories", { headers: { userId } });
+      const response = await apiClient.get("/categories");
       setCategories(response.data);
+
       setSnackbar({ open: true, message: "Category saved!", severity: "success" });
       handleClose();
+
     } catch (error) {
-      console.error("Error saving category:", error);
+      console.error("❌ API Error:", error.response?.data || error);
       setSnackbar({ open: true, message: "Error saving category", severity: "error" });
     }
   };
@@ -54,11 +66,11 @@ const useCategoryForm = (setCategories) => {
   const handleDelete = async (id) => {
     try {
       await apiClient.delete(`/categories/${id}`);
-      setCategories(prev => prev.filter(c => c.id !== id));
-      setSnackbar({ open: true, message: "Category deleted!", severity: "success" });
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setSnackbar({ open: true, message: "Category deleted successfully!", severity: "success" });
     } catch (error) {
       console.error("Error deleting category:", error);
-      setSnackbar({ open: true, message: "Failed to delete category", severity: "error" });
+      setSnackbar({ open: true, message: "Failed to delete category.", severity: "error" });
     }
   };
 
@@ -72,7 +84,7 @@ const useCategoryForm = (setCategories) => {
     handleSubmit,
     handleDelete,
     snackbar,
-    setSnackbar
+    setSnackbar,
   };
 };
 
