@@ -70,9 +70,10 @@ export default function Navbar() {
               </Button>
               {/* Show Budget Tracker only if user is logged in */}
               {isAuthenticated && (
-                <Button component={Link} to="/budget-tracker" variant="text" color="info" size="small">
+                <><Button component={Link} to="/budget-tracker" variant="text" color="info" size="small">
                   Budget Tracker
-                </Button>
+                </Button><Button component={Link} to="/categories" variant="text" color="info" size="small"> Category </Button></>
+                
               )}
             </Box>
           </Box>
@@ -120,9 +121,11 @@ export default function Navbar() {
                 <MenuItem component={Link} to="/privacy" onClick={toggleDrawer(false)}>Privacy</MenuItem>
                 <MenuItem component={Link} to="/contactus" onClick={toggleDrawer(false)}>Contact</MenuItem>
                 {isAuthenticated && (
-                  <MenuItem component={Link} to="/budget-tracker" onClick={toggleDrawer(false)}>
+                  <><MenuItem component={Link} to="/budget-tracker" onClick={toggleDrawer(false)}>
                     Budget Tracker
-                  </MenuItem>
+                  </MenuItem><MenuItem component={Link} to="/categories" onClick={toggleDrawer(false)}>
+                      Categories
+                    </MenuItem></>
                 )}
                 <Divider sx={{ my: 3 }} />
                 {isAuthenticated ? (

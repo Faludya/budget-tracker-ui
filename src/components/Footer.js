@@ -12,7 +12,7 @@ import TwitterIcon from '@mui/icons-material/X';
 
 function Copyright() {
   return (
-    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+    <Typography variant="body2" sx={{ color: 'text.secondary'}}>
       {'Copyright © '}
       <Link color="text.secondary" href="https://mui.com/">
         Sitemark
@@ -29,6 +29,7 @@ export default function Footer() {
       <Divider />
       <Container
         sx={{
+          mt: 'auto',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

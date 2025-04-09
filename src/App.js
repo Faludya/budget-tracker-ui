@@ -1,13 +1,15 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import CssBaseline from "@mui/material/CssBaseline";
+import { Box } from "@mui/material";
 import Blog from "./pages/Blogs";
 import Privacy from './pages/Privacy';
 import ContactUs from "./pages/ContactUs"
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
-import Navbar from "./components/Navbar"; 
+import Navbar from "./components/Navbar";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import BudgetTracker from "./pages/BudgetTracker";
+import Categories from "./pages/Categories";
 
 import Footer from "./components/Footer"; // Keep Footer global if needed
 import AppTheme from "./shared-theme/AppTheme"; // Ensure it's correctly imported
@@ -18,34 +20,43 @@ function App() {
     <AppTheme>
       <CssBaseline enableColorScheme />
       <Router>
-        <Navbar /> {/* Navbar is always visible */}
-        
-        {/* Main Content - Adjust marginTop to prevent overlap */}
-        <Container
-          maxWidth="lg"
-          component="main"
-          sx={{
-            marginTop: "80px", // Adjust based on navbar height
-            paddingBottom: "50px", // Ensure spacing from the footer
-          }}
+        <Box
+          display="flex"
+          flexDirection="column"
+          minHeight="100vh"   // 🔥 THIS is what makes the footer stick to the bottom
         >
-          <Routes>
-            <Route path="/" element={<Blog />} />
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/contactus" element={<ContactUs />} />
-            <Route element={<ProtectedRoute />}>
-              <Route path="/budget-tracker" element={<BudgetTracker />} />
-            </Route>
-          </Routes>
-        </Container>
+          <Navbar />
 
-        <Footer /> {/* Footer stays at the bottom */}
+          <Box component="main" flex="1">
+            <Container
+              maxWidth="lg"
+              component="main"
+              sx={{
+                marginTop: "100px",       // spacing under navbar
+                paddingBottom: "50px",   // spacing above footer
+              }}
+            >
+              <Routes>
+                <Route path="/" element={<Blog />} />
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/contactus" element={<ContactUs />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/budget-tracker" element={<BudgetTracker />} />
+                  <Route path="/categories" element={<Categories />} />
+                </Route>
+              </Routes>
+            </Container>
+          </Box>
+
+          <Footer />
+        </Box>
       </Router>
     </AppTheme>
   );
 }
+
 export default App;
 
 //Execution policies
