@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Button, Box, Snackbar, Alert, Typography, Grid } from "@mui/material";
+import {
+  Button,
+  Box,
+  Snackbar,
+  Alert,
+  Typography,
+  Stack,
+} from "@mui/material";
 import {
   Label,
   AttachMoney,
@@ -7,6 +14,9 @@ import {
   CalendarMonth,
   FolderOpen,
   MonetizationOn,
+  Add,
+  Edit,
+  Delete,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import apiClient from "../../api/axiosConfig";
@@ -48,11 +58,12 @@ const TransactionsTable = () => {
       try {
         const userId = localStorage.getItem("userId");
 
-        const [transactionsRes, categoriesRes, currenciesRes] = await Promise.all([
-          apiClient.get("/transactions", { headers: { userId } }),
-          apiClient.get("/categories", { headers: { userId } }),
-          apiClient.get("/currencies"),
-        ]);
+        const [transactionsRes, categoriesRes, currenciesRes] =
+          await Promise.all([
+            apiClient.get("/transactions", { headers: { userId } }),
+            apiClient.get("/categories", { headers: { userId } }),
+            apiClient.get("/currencies"),
+          ]);
 
         const transactions = transactionsRes.data.map((t) => ({
           ...t,
@@ -95,99 +106,145 @@ const TransactionsTable = () => {
       field: "actions",
       headerName: "Actions",
       flex: 1,
-      renderCell: (params) => (
-        <Box display="flex" gap={1}>
-          <Button variant="contained" size="small" onClick={() => handleOpen(params.row)}>
-            Edit
+      renderCell: ({ row }) => (
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            color="primary"
+            size="small"
+            onClick={() => handleOpen(row)}
+            sx={{ minWidth: 36, padding: "4px 8px" }}
+          >
+            <Edit fontSize="small" />
           </Button>
-          <Button variant="outlined" color="error" size="small" onClick={() => handleDelete(params.row.id)}>
-            Delete
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => handleDelete(row.id)}
+            sx={{ minWidth: 36, padding: "4px 8px" }}
+          >
+            <Delete fontSize="small" />
           </Button>
-        </Box>
+        </Stack>
       ),
     },
   ];
 
   return (
-    <Box p={3}>
-      <Typography variant="h5" mb={3}>
-        Transactions
-      </Typography>
+  <Box p={3}>
+    <Box
+      display="flex"
+      justifyContent="space-between"
+      alignItems="center"
+      mb={3}
+    >
+      <Typography variant="h5">Transactions</Typography>
 
-      {/* Filter UI */}
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={12} sm={6} md={3}>
-          <AppDatePicker
-            label="From"
-            name="fromDate"
-            value={filters.fromDate}
-            onChange={() => {}}
-            icon={<CalendarMonth fontSize="small" />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <AppDatePicker
-            label="To"
-            name="toDate"
-            value={filters.toDate}
-            onChange={() => {}}
-            icon={<CalendarMonth fontSize="small" />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <AppInput
-            label="Min Amount"
-            name="amountMin"
-            value={filters.amountMin}
-            onChange={() => {}}
-            type="number"
-            icon={<AttachMoney fontSize="small" />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <AppInput
-            label="Max Amount"
-            name="amountMax"
-            value={filters.amountMax}
-            onChange={() => {}}
-            type="number"
-            icon={<AttachMoney fontSize="small" />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <AppSelect
-            label="Category"
-            value={filters.categoryId}
-            options={categories}
-            getOptionLabel={(opt) => opt.name}
-            onChange={() => {}}
-            icon={<FolderOpen fontSize="small" />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <AppSelect
-            label="Type"
-            value={filters.type}
-            options={[
-              { id: "Debit", name: "Debit" },
-              { id: "Credit", name: "Credit" },
-            ]}
-            getOptionLabel={(opt) => opt.name}
-            onChange={() => {}}
-            icon={<Label fontSize="small" />}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Button variant="contained" fullWidth>
-            Apply
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Button variant="outlined" fullWidth>
-            Reset
-          </Button>
-        </Grid>
-      </Grid>
+      <Button
+        variant="contained"
+        startIcon={<Add />}
+        onClick={() => handleOpen(null)}
+      >
+        Add Transaction
+      </Button>
+    </Box>
+
+
+{/* Filter UI */}
+<Stack spacing={2} mb={4}>
+  {/* Row 1: Date and Amount */}
+  <Stack
+    direction={{ xs: "column", md: "row" }}
+    spacing={2}
+    alignItems="center"
+    flexWrap="wrap"
+    useFlexGap
+  >
+    <AppDatePicker
+      label="From"
+      name="fromDate"
+      value={filters.fromDate}
+      onChange={() => {}}
+      icon={<CalendarMonth fontSize="small" />}
+      sx={{ maxWidth: 220 }}
+    />
+    <AppDatePicker
+      label="To"
+      name="toDate"
+      value={filters.toDate}
+      onChange={() => {}}
+      icon={<CalendarMonth fontSize="small" />}
+      sx={{ maxWidth: 220 }}
+    />
+    <AppInput
+      label="Min Amount"
+      name="amountMin"
+      value={filters.amountMin}
+      onChange={() => {}}
+      type="number"
+      icon={<AttachMoney fontSize="small" />}
+      sx={{ maxWidth: 220 }}
+    />
+    <AppInput
+      label="Max Amount"
+      name="amountMax"
+      value={filters.amountMax}
+      onChange={() => {}}
+      type="number"
+      icon={<AttachMoney fontSize="small" />}
+      sx={{ maxWidth: 220 }}
+    />
+  </Stack>
+
+  {/* Row 2: Category, Type, Buttons */}
+  <Stack
+    direction={{ xs: "column", md: "row" }}
+    spacing={2}
+    alignItems="center"
+    justifyContent="space-between"
+    flexWrap="wrap"
+    useFlexGap
+  >
+    <Stack direction="row" spacing={2} flexWrap="wrap">
+      <AppSelect
+        label="Category"
+        value={filters.categoryId}
+        options={categories}
+        getOptionLabel={(opt) => opt.name}
+        onChange={() => {}}
+        icon={<FolderOpen fontSize="small" />}
+        sx={{ minWidth: 220 }}
+      />
+      <AppSelect
+        label="Type"
+        value={filters.type}
+        options={[
+          { id: "Debit", name: "Debit" },
+          { id: "Credit", name: "Credit" },
+        ]}
+        getOptionLabel={(opt) => opt.name}
+        onChange={() => {}}
+        icon={<Label fontSize="small" />}
+        sx={{ minWidth: 220 }}
+      />
+    </Stack>
+
+    <Stack direction="row" spacing={2} mt={{ xs: 2, md: 0 }}>
+      <Button
+        variant="contained"
+        sx={{ minWidth: 120, borderRadius: 2, boxShadow: 2 }}
+      >
+        Apply
+      </Button>
+      <Button variant="outlined" sx={{ minWidth: 120, borderRadius: 2 }}>
+        Reset
+      </Button>
+    </Stack>
+  </Stack>
+</Stack>
+
+
 
       <AppTable rows={transactions} columns={columns} pageSize={5} autoHeight />
 
@@ -197,16 +254,43 @@ const TransactionsTable = () => {
         onClose={handleClose}
         onSave={handleSubmit}
       >
-        <AppInput label="Type" name="type" value={formData.type} onChange={handleChange} icon={<Label fontSize="small" />} />
-        <AppInput label="Amount" name="amount" value={formData.amount} onChange={handleChange} type="number" icon={<AttachMoney fontSize="small" />} />
-        <AppInput label="Description" name="description" value={formData.description} onChange={handleChange} icon={<Notes fontSize="small" />} />
-        <AppDatePicker label="Date" name="date" value={formData.date} onChange={handleChange} icon={<CalendarMonth fontSize="small" />} />
+        <AppInput
+          label="Type"
+          name="type"
+          value={formData.type}
+          onChange={handleChange}
+          icon={<Label fontSize="small" />}
+        />
+        <AppInput
+          label="Amount"
+          name="amount"
+          value={formData.amount}
+          onChange={handleChange}
+          type="number"
+          icon={<AttachMoney fontSize="small" />}
+        />
+        <AppInput
+          label="Description"
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          icon={<Notes fontSize="small" />}
+        />
+        <AppDatePicker
+          label="Date"
+          name="date"
+          value={formData.date}
+          onChange={handleChange}
+          icon={<CalendarMonth fontSize="small" />}
+        />
         <AppSelect
           label="Category"
           value={formData.categoryId}
           options={categories}
           getOptionLabel={(opt) => opt.name}
-          onChange={(val) => handleChange({ target: { name: "categoryId", value: val } })}
+          onChange={(val) =>
+            handleChange({ target: { name: "categoryId", value: val } })
+          }
           icon={<FolderOpen fontSize="small" />}
         />
         <AppSelect
@@ -214,12 +298,18 @@ const TransactionsTable = () => {
           value={formData.currencyId}
           options={currencies}
           getOptionLabel={(opt) => opt.name}
-          onChange={(val) => handleChange({ target: { name: "currencyId", value: val } })}
+          onChange={(val) =>
+            handleChange({ target: { name: "currencyId", value: val } })
+          }
           icon={<MonetizationOn fontSize="small" />}
         />
       </AppModal>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
     </Box>

@@ -4,7 +4,6 @@ import TransactionsTable from "../components/budget-tracking/TransactionsTable.j
 const BudgetTracker = () => {
   return (
     <div>
-      <h1>Budget Tracker</h1>
       <TransactionsTable />
     </div>
   );
