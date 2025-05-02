@@ -14,9 +14,12 @@ import Categories from "./pages/Categories";
 import Footer from "./components/Footer"; // Keep Footer global if needed
 import AppTheme from "./shared-theme/AppTheme"; // Ensure it's correctly imported
 import Container from "@mui/material/Container";
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 
 function App() {
   return (
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
     <AppTheme>
       <CssBaseline enableColorScheme />
       <Router>
@@ -54,6 +57,7 @@ function App() {
         </Box>
       </Router>
     </AppTheme>
+    </LocalizationProvider>
   );
 }
 
