@@ -26,11 +26,14 @@ import AppSelect from "../../components/common/AppSelect";
 import AppInput from "../../components/common/AppInput";
 import AppDatePicker from "../../components/common/AppDatePicker";
 import AppTable from "../../components/common/AppTable";
+import CurrencySelector from "../../components/CurrencySelector";
+import { getPreferredCurrency } from "../../utils/currencyUtils";
 
 const TransactionsTable = () => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
+  const [preferredCurrency, setPreferredCurrency] = useState(getPreferredCurrency());
 
   const [filters, setFilters] = useState({
     fromDate: dayjs().startOf("month"),
@@ -53,34 +56,48 @@ const TransactionsTable = () => {
     setSnackbar,
   } = useTransactionForm(setTransactions);
 
+  const convertAmount = (amount, fromCode) => {
+    const fromCurrency = currencies.find(c => c.code === fromCode);
+    const toCurrency = currencies.find(c => c.code === preferredCurrency);
+  
+    if (!fromCurrency || !toCurrency || fromCode === preferredCurrency) return amount;
+  
+    const baseAmount = amount / fromCurrency.exchangeRate;
+    return (baseAmount * toCurrency.exchangeRate).toFixed(2);
+  };
+  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const userId = localStorage.getItem("userId");
-
-        const [transactionsRes, categoriesRes, currenciesRes] =
-          await Promise.all([
-            apiClient.get("/transactions", { headers: { userId } }),
-            apiClient.get("/categories", { headers: { userId } }),
-            apiClient.get("/currencies"),
-          ]);
-
+  
+        const [transactionsRes, categoriesRes, currenciesRes] = await Promise.all([
+          apiClient.get("/transactions", { headers: { userId } }),
+          apiClient.get("/categories", { headers: { userId } }),
+          apiClient.get("/currencies"),
+        ]);
+  
         const transactions = transactionsRes.data.map((t) => ({
           ...t,
           id: t.id ?? t.transactionId,
         }));
-
+  
         setTransactions(transactions);
         setCategories(categoriesRes.data);
         setCurrencies(currenciesRes.data);
+  
+        // Set preferredCurrency again if it's not in localStorage or currencies aren't yet loaded
+        const localCurrency = localStorage.getItem("preferredCurrency") || "EUR";
+        setPreferredCurrency(localCurrency);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
-
+  
     fetchData();
   }, []);
-
+  
   const columns = [
     {
       field: "date",
@@ -93,8 +110,12 @@ const TransactionsTable = () => {
       field: "amount",
       headerName: "Amount",
       flex: 1,
-      renderCell: ({ row }) => `${row.currency?.symbol ?? ""}${row.amount}`,
-    },
+      renderCell: ({ row }) => {
+        const converted = convertAmount(row.amount, row.currency?.code);
+        const symbol = currencies.find(c => c.code === preferredCurrency)?.symbol ?? "";
+        return `${symbol}${converted}`;
+      },
+    },    
     { field: "description", headerName: "Description", flex: 2 },
     {
       field: "categoryName",
@@ -132,119 +153,106 @@ const TransactionsTable = () => {
   ];
 
   return (
-  <Box p={3}>
-    <Box
-      display="flex"
-      justifyContent="space-between"
-      alignItems="center"
-      mb={3}
-    >
-      <Typography variant="h5">Transactions</Typography>
+    <Box p={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5">Transactions</Typography>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => handleOpen(null)}
+        >
+          Add Transaction
+        </Button>
+      </Box>
 
-      <Button
-        variant="contained"
-        startIcon={<Add />}
-        onClick={() => handleOpen(null)}
-      >
-        Add Transaction
-      </Button>
-    </Box>
+      <Stack spacing={2} mb={4}>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
+        >
+          <AppDatePicker
+            label="From"
+            name="fromDate"
+            value={filters.fromDate}
+            onChange={() => {}}
+            icon={<CalendarMonth fontSize="small" />}
+            sx={{ maxWidth: 220 }}
+          />
+          <AppDatePicker
+            label="To"
+            name="toDate"
+            value={filters.toDate}
+            onChange={() => {}}
+            icon={<CalendarMonth fontSize="small" />}
+            sx={{ maxWidth: 220 }}
+          />
+          <AppInput
+            label="Min Amount"
+            name="amountMin"
+            value={filters.amountMin}
+            onChange={() => {}}
+            type="number"
+            icon={<AttachMoney fontSize="small" />}
+            sx={{ maxWidth: 220 }}
+          />
+          <AppInput
+            label="Max Amount"
+            name="amountMax"
+            value={filters.amountMax}
+            onChange={() => {}}
+            type="number"
+            icon={<AttachMoney fontSize="small" />}
+            sx={{ maxWidth: 220 }}
+          />
+        </Stack>
 
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          alignItems="center"
+          justifyContent="space-between"
+          flexWrap="wrap"
+          useFlexGap
+        >
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            <AppSelect
+              label="Category"
+              value={filters.categoryId}
+              options={categories}
+              getOptionLabel={(opt) => opt.name}
+              onChange={() => {}}
+              icon={<FolderOpen fontSize="small" />}
+              sx={{ minWidth: 220 }}
+            />
+            <AppSelect
+              label="Type"
+              value={filters.type}
+              options={[{ id: "Debit", name: "Debit" }, { id: "Credit", name: "Credit" }]}
+              getOptionLabel={(opt) => opt.name}
+              onChange={() => {}}
+              icon={<Label fontSize="small" />}
+              sx={{ minWidth: 220 }}
+            />
+          </Stack>
 
-{/* Filter UI */}
-<Stack spacing={2} mb={4}>
-  {/* Row 1: Date and Amount */}
-  <Stack
-    direction={{ xs: "column", md: "row" }}
-    spacing={2}
-    alignItems="center"
-    flexWrap="wrap"
-    useFlexGap
-  >
-    <AppDatePicker
-      label="From"
-      name="fromDate"
-      value={filters.fromDate}
-      onChange={() => {}}
-      icon={<CalendarMonth fontSize="small" />}
-      sx={{ maxWidth: 220 }}
-    />
-    <AppDatePicker
-      label="To"
-      name="toDate"
-      value={filters.toDate}
-      onChange={() => {}}
-      icon={<CalendarMonth fontSize="small" />}
-      sx={{ maxWidth: 220 }}
-    />
-    <AppInput
-      label="Min Amount"
-      name="amountMin"
-      value={filters.amountMin}
-      onChange={() => {}}
-      type="number"
-      icon={<AttachMoney fontSize="small" />}
-      sx={{ maxWidth: 220 }}
-    />
-    <AppInput
-      label="Max Amount"
-      name="amountMax"
-      value={filters.amountMax}
-      onChange={() => {}}
-      type="number"
-      icon={<AttachMoney fontSize="small" />}
-      sx={{ maxWidth: 220 }}
-    />
-  </Stack>
-
-  {/* Row 2: Category, Type, Buttons */}
-  <Stack
-    direction={{ xs: "column", md: "row" }}
-    spacing={2}
-    alignItems="center"
-    justifyContent="space-between"
-    flexWrap="wrap"
-    useFlexGap
-  >
-    <Stack direction="row" spacing={2} flexWrap="wrap">
-      <AppSelect
-        label="Category"
-        value={filters.categoryId}
-        options={categories}
-        getOptionLabel={(opt) => opt.name}
-        onChange={() => {}}
-        icon={<FolderOpen fontSize="small" />}
-        sx={{ minWidth: 220 }}
-      />
-      <AppSelect
-        label="Type"
-        value={filters.type}
-        options={[
-          { id: "Debit", name: "Debit" },
-          { id: "Credit", name: "Credit" },
-        ]}
-        getOptionLabel={(opt) => opt.name}
-        onChange={() => {}}
-        icon={<Label fontSize="small" />}
-        sx={{ minWidth: 220 }}
-      />
-    </Stack>
-
-    <Stack direction="row" spacing={2} mt={{ xs: 2, md: 0 }}>
-      <Button
-        variant="contained"
-        sx={{ minWidth: 120, borderRadius: 2, boxShadow: 2 }}
-      >
-        Apply
-      </Button>
-      <Button variant="outlined" sx={{ minWidth: 120, borderRadius: 2 }}>
-        Reset
-      </Button>
-    </Stack>
-  </Stack>
-</Stack>
-
-
+          <Stack direction="row" spacing={2} mt={{ xs: 2, md: 0 }}>
+            <CurrencySelector
+              currencies={currencies}
+              selected={preferredCurrency}
+              onChange={setPreferredCurrency}
+            />
+            <Button variant="contained" sx={{ minWidth: 120, borderRadius: 2 }}>
+              Apply
+            </Button>
+            <Button variant="outlined" sx={{ minWidth: 120, borderRadius: 2 }}>
+              Reset
+            </Button>
+          </Stack>
+        </Stack>
+      </Stack>
 
       <AppTable rows={transactions} columns={columns} pageSize={5} autoHeight />
 

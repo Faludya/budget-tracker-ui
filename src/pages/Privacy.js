@@ -1,47 +1,70 @@
 import * as React from 'react';
-import CssBaseline from '@mui/material/CssBaseline';
-import Container from '@mui/material/Container';
-import Typography from '@mui/material/Typography';
-import AppTheme from '../shared-theme/AppTheme';
-import Navbar from '../components/Navbar';
+import { Box, Typography, Container, Card, CardContent, Grid } from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
+import SecurityIcon from '@mui/icons-material/Security';
+import ShareIcon from '@mui/icons-material/Share';
+import EmailIcon from '@mui/icons-material/Email';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
-export default function Privacy(props) {
+const sections = [
+  {
+    title: 'Information We Collect',
+    icon: <InfoIcon fontSize="large" />,
+    content: `We may collect personal information that you voluntarily provide to us, such as your name, email address, and transaction details when using our services.`,
+  },
+  {
+    title: 'How We Use Your Information',
+    icon: <EmailIcon fontSize="large" />,
+    content: `We use your information to:
+      • Provide and maintain our services
+      • Improve user experience
+      • Communicate with you about updates
+      • Ensure data security and compliance`,
+  },
+  {
+    title: 'Sharing of Your Information',
+    icon: <ShareIcon fontSize="large" />,
+    content: `We do not sell your personal data. We may share information with service providers who help us operate and maintain the application, under strict confidentiality agreements.`,
+  },
+  {
+    title: 'Data Security',
+    icon: <SecurityIcon fontSize="large" />,
+    content: `We implement industry-standard measures to protect your personal information against unauthorized access, alteration, or destruction.`,
+  },
+  {
+    title: 'Your Choices',
+    icon: <AccountCircleIcon fontSize="large" />,
+    content: `You may review, update, or delete your account information at any time from within the app. If you have questions or need help, please contact our support team.`,
+  },
+];
+
+export default function PrivacyPolicy() {
   return (
-    <AppTheme {...props}>
-      <CssBaseline enableColorScheme />
-      <Navbar />
-      <Container
-        maxWidth="md"
-        component="main"
-        sx={{ display: 'flex', flexDirection: 'column', my: 8, gap: 4 }}
-      >
-        <Typography variant="h4" gutterBottom>
-          Privacy Policy
-        </Typography>
-        <Typography variant="body1">
-          Your privacy is important to us. It is Budget Tracker's policy to respect your privacy
-          regarding any information we may collect from you across our website.
-        </Typography>
-        <Typography variant="h6">1. Information We Collect</Typography>
-        <Typography variant="body1">
-          We collect information that you provide directly to us, such as when you sign up for an account,
-          subscribe to a newsletter, or contact us for support.
-        </Typography>
-        <Typography variant="h6">2. How We Use Your Information</Typography>
-        <Typography variant="body1">
-          We use the information we collect for various purposes, including providing and maintaining
-          our services, improving user experience, and ensuring security.
-        </Typography>
-        <Typography variant="h6">3. Data Security</Typography>
-        <Typography variant="body1">
-          We take appropriate measures to protect your personal data from unauthorized access,
-          disclosure, alteration, and destruction.
-        </Typography>
-        <Typography variant="h6">4. Contact Us</Typography>
-        <Typography variant="body1">
-          If you have any questions about our Privacy Policy, please contact us at support@budgettracker.com.
-        </Typography>
-      </Container>
-    </AppTheme>
+    <Container maxWidth="md" sx={{ py: 6 }}>
+      <Typography variant="h3" gutterBottom>
+        Privacy Policy
+      </Typography>
+      <Typography variant="body1" paragraph>
+        Your privacy is important to us. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Budget Tracker application.
+      </Typography>
+
+      <Grid container spacing={4}>
+        {sections.map((section, index) => (
+          <Grid item xs={12} key={index}>
+            <Card variant="outlined">
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  {section.icon}
+                  <Typography variant="h5">{section.title}</Typography>
+                </Box>
+                <Typography variant="body1" component="pre" whiteSpace="pre-wrap">
+                  {section.content}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
   );
 }

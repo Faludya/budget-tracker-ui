@@ -73,12 +73,12 @@ export default function SignIn(props) {
   const [errors, setErrors] = useState({});
   const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleClickOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const closeSnackbar = () => setSnackbar({ ...snackbar, open: false });
-  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -105,14 +105,13 @@ export default function SignIn(props) {
 
     try {
       const response = await axios.post("https://localhost:7288/api/users/login", credentials);
-      const { token, userId } = response.data; 
+      const { token, userId } = response.data;
 
       if (token) {
-        localStorage.setItem("authToken", response.data.token);
+        localStorage.setItem("authToken", token);
         localStorage.setItem("userId", userId);
         setSnackbar({ open: true, message: "Login successful!", severity: "success" });
 
-        // Redirect after login
         setTimeout(() => {
           navigate("/budget-tracker");
           window.location.reload(); // Ensure UI updates (Navbar, Protected Routes)
@@ -124,10 +123,15 @@ export default function SignIn(props) {
         message: "Invalid credentials. Please try again.",
         severity: "error",
       });
+    } finally {
+      setLoading(false);
     }
-    finally {
-      setLoading(false); 
-    }
+  };
+
+  const handleGoogleLogin = () => {
+    const backendUrl = "https://localhost:7288"; // API base URL
+    const returnUrl = "http://localhost:3000/google-auth"; // Callback page
+    window.location.href = `${backendUrl}/api/users/login-google?returnUrl=${encodeURIComponent(returnUrl)}`;
   };
 
   return (
@@ -189,7 +193,7 @@ export default function SignIn(props) {
           {/* ✅ Divider + Google Login */}
           <Divider>or</Divider>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Button fullWidth variant="outlined" startIcon={<GoogleIcon />}>
+            <Button fullWidth variant="outlined" startIcon={<GoogleIcon />} onClick={handleGoogleLogin}>
               Sign in with Google
             </Button>
             <Typography sx={{ textAlign: "center" }}>
@@ -202,7 +206,12 @@ export default function SignIn(props) {
         </Card>
       </SignInContainer>
 
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={closeSnackbar} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={closeSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
     </AppTheme>

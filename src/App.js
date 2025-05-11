@@ -10,6 +10,7 @@ import Navbar from "./components/Navbar";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import BudgetTracker from "./pages/BudgetTracker";
 import Categories from "./pages/Categories";
+import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 
 import Footer from "./components/Footer"; // Keep Footer global if needed
 import AppTheme from "./shared-theme/AppTheme"; // Ensure it's correctly imported
@@ -43,11 +44,12 @@ function App() {
                 <Route path="/" element={<Blog />} />
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/signup" element={<SignUp />} />
+                <Route path="/google-auth" element={<GoogleAuthCallback />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/contactus" element={<ContactUs />} />
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/budget-tracker" element={<BudgetTracker />} />
-                  <Route path="/categories" element={<Categories />} />
+                <Route path="/budget-tracker" element={<BudgetTracker />} />
+                <Route path="/categories" element={<Categories />} />
                 </Route>
               </Routes>
             </Container>
