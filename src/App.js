@@ -11,6 +11,8 @@ import ProtectedRoute from "./pages/ProtectedRoute";
 import BudgetTracker from "./pages/BudgetTracker";
 import Categories from "./pages/Categories";
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
+import { UserPreferencesProvider } from "./contexts/UserPreferencesContext";
+import { TransactionProvider } from "./contexts/TransactionContext";
 
 import Footer from "./components/Footer"; // Keep Footer global if needed
 import AppTheme from "./shared-theme/AppTheme"; // Ensure it's correctly imported
@@ -21,44 +23,48 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 function App() {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-    <AppTheme>
-      <CssBaseline enableColorScheme />
-      <Router>
-        <Box
-          display="flex"
-          flexDirection="column"
-          minHeight="100vh"   // 🔥 THIS is what makes the footer stick to the bottom
-        >
-          <Navbar />
+      <UserPreferencesProvider>
+        <TransactionProvider>
+          <AppTheme>
+            <CssBaseline enableColorScheme />
+            <Router>
+              <Box
+                display="flex"
+                flexDirection="column"
+                minHeight="100vh"   // 🔥 THIS is what makes the footer stick to the bottom
+              >
+                <Navbar />
 
-          <Box component="main" flex="1">
-            <Container
-              maxWidth="lg"
-              component="main"
-              sx={{
-                marginTop: "100px",       // spacing under navbar
-                paddingBottom: "50px",   // spacing above footer
-              }}
-            >
-              <Routes>
-                <Route path="/" element={<Blog />} />
-                <Route path="/signin" element={<SignIn />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/google-auth" element={<GoogleAuthCallback />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/contactus" element={<ContactUs />} />
-                <Route element={<ProtectedRoute />}>
-                <Route path="/budget-tracker" element={<BudgetTracker />} />
-                <Route path="/categories" element={<Categories />} />
-                </Route>
-              </Routes>
-            </Container>
-          </Box>
+                <Box component="main" flex="1">
+                  <Container
+                    maxWidth="lg"
+                    component="main"
+                    sx={{
+                      marginTop: "100px",       // spacing under navbar
+                      paddingBottom: "50px",   // spacing above footer
+                    }}
+                  >
+                    <Routes>
+                      <Route path="/" element={<Blog />} />
+                      <Route path="/signin" element={<SignIn />} />
+                      <Route path="/signup" element={<SignUp />} />
+                      <Route path="/google-auth" element={<GoogleAuthCallback />} />
+                      <Route path="/privacy" element={<Privacy />} />
+                      <Route path="/contactus" element={<ContactUs />} />
+                      <Route element={<ProtectedRoute />}>
+                        <Route path="/budget-tracker" element={<BudgetTracker />} />
+                        <Route path="/categories" element={<Categories />} />
+                      </Route>
+                    </Routes>
+                  </Container>
+                </Box>
 
-          <Footer />
-        </Box>
-      </Router>
-    </AppTheme>
+                <Footer />
+              </Box>
+            </Router>
+          </AppTheme>
+        </TransactionProvider>
+      </UserPreferencesProvider>
     </LocalizationProvider>
   );
 }

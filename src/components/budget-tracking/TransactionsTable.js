@@ -26,14 +26,12 @@ import AppSelect from "../../components/common/AppSelect";
 import AppInput from "../../components/common/AppInput";
 import AppDatePicker from "../../components/common/AppDatePicker";
 import AppTable from "../../components/common/AppTable";
-import CurrencySelector from "../../components/CurrencySelector";
-import { getPreferredCurrency } from "../../utils/currencyUtils";
+import { useUserPreferences } from "../../contexts/UserPreferencesContext";
 
 const TransactionsTable = () => {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
-  const [preferredCurrency, setPreferredCurrency] = useState(getPreferredCurrency());
 
   const [filters, setFilters] = useState({
     fromDate: dayjs().startOf("month"),
@@ -44,60 +42,37 @@ const TransactionsTable = () => {
     type: "",
   });
 
-  const {
-    formData,
-    open,
-    handleOpen,
-    handleClose,
-    handleChange,
-    handleSubmit,
-    handleDelete,
-    snackbar,
-    setSnackbar,
-  } = useTransactionForm(setTransactions);
+  const { formData, open, handleOpen, handleClose, handleChange, handleSubmit, handleDelete, snackbar, setSnackbar, } = useTransactionForm(setTransactions);
+  const { preferences } = useUserPreferences();
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
 
-  const convertAmount = (amount, fromCode) => {
-    const fromCurrency = currencies.find(c => c.code === fromCode);
-    const toCurrency = currencies.find(c => c.code === preferredCurrency);
-  
-    if (!fromCurrency || !toCurrency || fromCode === preferredCurrency) return amount;
-  
-    const baseAmount = amount / fromCurrency.exchangeRate;
-    return (baseAmount * toCurrency.exchangeRate).toFixed(2);
+      const [transactionsRes, categoriesRes, currenciesRes] = await Promise.all([
+        apiClient.get("/transactions", { headers: { userId } }),
+        apiClient.get("/categories", { headers: { userId } }),
+        apiClient.get("/currencies"),
+      ]);
+
+      const transactions = transactionsRes.data.map((t) => ({
+        ...t,
+        id: t.id ?? t.transactionId,
+      }));
+
+      setTransactions(transactions);
+      setCategories(categoriesRes.data);
+      setCurrencies(currenciesRes.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
   };
-  
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userId = localStorage.getItem("userId");
-  
-        const [transactionsRes, categoriesRes, currenciesRes] = await Promise.all([
-          apiClient.get("/transactions", { headers: { userId } }),
-          apiClient.get("/categories", { headers: { userId } }),
-          apiClient.get("/currencies"),
-        ]);
-  
-        const transactions = transactionsRes.data.map((t) => ({
-          ...t,
-          id: t.id ?? t.transactionId,
-        }));
-  
-        setTransactions(transactions);
-        setCategories(categoriesRes.data);
-        setCurrencies(currenciesRes.data);
-  
-        // Set preferredCurrency again if it's not in localStorage or currencies aren't yet loaded
-        const localCurrency = localStorage.getItem("preferredCurrency") || "EUR";
-        setPreferredCurrency(localCurrency);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-  
+  if (preferences?.preferredCurrency) {
     fetchData();
-  }, []);
-  
+  }
+}, [preferences?.preferredCurrency]); 
+
   const columns = [
     {
       field: "date",
@@ -111,11 +86,11 @@ const TransactionsTable = () => {
       headerName: "Amount",
       flex: 1,
       renderCell: ({ row }) => {
-        const converted = convertAmount(row.amount, row.currency?.code);
-        const symbol = currencies.find(c => c.code === preferredCurrency)?.symbol ?? "";
-        return `${symbol}${converted}`;
-      },
-    },    
+        const symbol = currencies.find(c => c.code === preferences?.preferredCurrency)?.symbol ?? "";
+        return `${row.convertedAmount ?? row.amount} ${symbol}`;
+      }
+
+    },
     { field: "description", headerName: "Description", flex: 2 },
     {
       field: "categoryName",
@@ -165,6 +140,7 @@ const TransactionsTable = () => {
         </Button>
       </Box>
 
+      {/* Filters UI */}
       <Stack spacing={2} mb={4}>
         <Stack
           direction={{ xs: "column", md: "row" }}
@@ -239,11 +215,6 @@ const TransactionsTable = () => {
           </Stack>
 
           <Stack direction="row" spacing={2} mt={{ xs: 2, md: 0 }}>
-            <CurrencySelector
-              currencies={currencies}
-              selected={preferredCurrency}
-              onChange={setPreferredCurrency}
-            />
             <Button variant="contained" sx={{ minWidth: 120, borderRadius: 2 }}>
               Apply
             </Button>
@@ -315,7 +286,7 @@ const TransactionsTable = () => {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
+        autoHideDuration={3000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>

@@ -1,12 +1,29 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { alpha, styled } from "@mui/material/styles";
-import { Link } from "react-router-dom";
-import { Box, AppBar, Toolbar, Button, IconButton, Container, Divider, MenuItem, Drawer,} from "@mui/material";
+import {
+  AppBar,
+  Alert,
+  Toolbar,
+  Box,
+  Button,
+  IconButton,
+  Container,
+  MenuItem,
+  Divider,
+  Drawer,
+  Snackbar,
+} from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { MonetizationOn } from "@mui/icons-material";
+
+import apiClient from "../api/axiosConfig";
+import Sitemark from "./SitemarkIcon";
 import ColorModeIconDropdown from "../shared-theme/ColorModeIconDropdown";
-import Sitemark from "../components/SitemarkIcon";
+import AppSelect from "./common/AppSelect";
+import { useUserPreferences } from "../contexts/UserPreferencesContext";
+import { useTransactionContext } from "../contexts/TransactionContext";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: "flex",
@@ -26,8 +43,20 @@ const StyledToolbar = styled(Toolbar)(({ theme }) => ({
 
 export default function Navbar() {
   const [open, setOpen] = React.useState(false);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(
+    !!localStorage.getItem("authToken")
+  );
+  const [currencies, setCurrencies] = React.useState([]);
+  const { preferences, setPreferences } = useUserPreferences();
+  const { fetchTransactions } = useTransactionContext();
+  
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem("authToken"));
+  const [snackbar, setSnackbar] = React.useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
+
   const toggleDrawer = (newOpen) => () => {
     setOpen(newOpen);
   };
@@ -35,10 +64,41 @@ export default function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("userId");
-    setIsAuthenticated(false); 
+    setIsAuthenticated(false);
     navigate("");
     window.location.reload();
   };
+
+
+  const handleCurrencyChange = async (currencyCode) => {
+    const updated = { ...preferences, preferredCurrency: currencyCode };
+
+    try {
+      await apiClient.put("/userpreferences", updated, {
+        headers: { userId: localStorage.getItem("userId") },
+      });
+      setPreferences(updated);
+      fetchTransactions(); // ✅ refresh transactions
+      setSnackbar({ open: true, message: "Currency updated!", severity: "info" });
+    } catch (error) {
+      console.error("Failed to update currency preference", error);
+    }
+  };
+
+
+
+  React.useEffect(() => {
+    const fetchCurrencies = async () => {
+      try {
+        const response = await apiClient.get("/currencies");
+        setCurrencies(response.data);
+      } catch (error) {
+        console.error("Failed to fetch currencies:", error);
+      }
+    };
+
+    fetchCurrencies();
+  }, []);
 
   return (
     <AppBar
@@ -53,8 +113,8 @@ export default function Navbar() {
     >
       <Container maxWidth="lg">
         <StyledToolbar variant="dense" disableGutters>
-          {/* Left Section - Logo & Menu Items */}
-          <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", px: 0 }}>
+          {/* Left Section */}
+          <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center" }}>
             <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
               <Sitemark />
             </Link>
@@ -68,18 +128,33 @@ export default function Navbar() {
               <Button component={Link} to="/contactus" variant="text" color="info" size="small">
                 Contact
               </Button>
-              {/* Show Budget Tracker only if user is logged in */}
               {isAuthenticated && (
-                <><Button component={Link} to="/budget-tracker" variant="text" color="info" size="small">
-                  Budget Tracker
-                </Button><Button component={Link} to="/categories" variant="text" color="info" size="small"> Category </Button></>
-                
+                <>
+                  <Button component={Link} to="/budget-tracker" variant="text" color="info" size="small">
+                    Budget Tracker
+                  </Button>
+                  <Button component={Link} to="/categories" variant="text" color="info" size="small">
+                    Category
+                  </Button>
+                </>
               )}
             </Box>
           </Box>
 
-          {/* Right Section - Authentication & Theme Toggle */}
-          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 1, alignItems: "center" }}>
+          {/* Right Section */}
+          <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
+            {isAuthenticated && preferences && (
+              <AppSelect
+                value={preferences?.preferredCurrency ?? ""}
+                options={currencies}
+                getOptionLabel={(opt) => `${opt.symbol} - ${opt.code}`}
+                getOptionValue={(opt) => opt.code}
+                onChange={(selected) => handleCurrencyChange(selected.code)}
+                icon={<MonetizationOn fontSize="small" />}
+                sx={{ minWidth: 150 }}
+              />
+            )}
+
             {isAuthenticated ? (
               <Button color="primary" variant="contained" size="small" onClick={handleLogout}>
                 Logout
@@ -97,7 +172,7 @@ export default function Navbar() {
             <ColorModeIconDropdown />
           </Box>
 
-          {/* Mobile Menu */}
+          {/* Mobile Section */}
           <Box sx={{ display: { xs: "flex", md: "none" }, gap: 1 }}>
             <ColorModeIconDropdown size="medium" />
             <IconButton aria-label="Menu button" onClick={toggleDrawer(true)}>
@@ -107,9 +182,7 @@ export default function Navbar() {
               anchor="top"
               open={open}
               onClose={toggleDrawer(false)}
-              PaperProps={{
-                sx: { top: "var(--template-frame-height, 0px)" },
-              }}
+              PaperProps={{ sx: { top: "var(--template-frame-height, 0px)" } }}
             >
               <Box sx={{ p: 2, backgroundColor: "background.default" }}>
                 <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
@@ -121,11 +194,14 @@ export default function Navbar() {
                 <MenuItem component={Link} to="/privacy" onClick={toggleDrawer(false)}>Privacy</MenuItem>
                 <MenuItem component={Link} to="/contactus" onClick={toggleDrawer(false)}>Contact</MenuItem>
                 {isAuthenticated && (
-                  <><MenuItem component={Link} to="/budget-tracker" onClick={toggleDrawer(false)}>
-                    Budget Tracker
-                  </MenuItem><MenuItem component={Link} to="/categories" onClick={toggleDrawer(false)}>
+                  <>
+                    <MenuItem component={Link} to="/budget-tracker" onClick={toggleDrawer(false)}>
+                      Budget Tracker
+                    </MenuItem>
+                    <MenuItem component={Link} to="/categories" onClick={toggleDrawer(false)}>
                       Categories
-                    </MenuItem></>
+                    </MenuItem>
+                  </>
                 )}
                 <Divider sx={{ my: 3 }} />
                 {isAuthenticated ? (
@@ -152,6 +228,15 @@ export default function Navbar() {
             </Drawer>
           </Box>
         </StyledToolbar>
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
+        </Snackbar>
+
       </Container>
     </AppBar>
   );

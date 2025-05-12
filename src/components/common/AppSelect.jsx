@@ -9,13 +9,22 @@ import {
 
 const AppSelect = ({
   label,
-  value,
+  value, // this should be a primitive like "EUR"
   onChange,
   options,
   getOptionLabel = (opt) => opt,
+  getOptionValue = (opt) => opt, // NEW: extract primitive key (e.g., currency.code)
   icon = null,
   ...props
 }) => {
+  const handleChange = (event) => {
+    const selectedValue = event.target.value;
+    const selectedOption = options.find(
+      (opt) => getOptionValue(opt) === selectedValue
+    );
+    onChange(selectedOption);
+  };
+
   return (
     <Box>
       {label && (
@@ -36,7 +45,7 @@ const AppSelect = ({
         select
         fullWidth
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleChange}
         variant="outlined"
         InputProps={{
           startAdornment: icon ? (
@@ -57,7 +66,7 @@ const AppSelect = ({
         {...props}
       >
         {options.map((option) => (
-          <MenuItem key={option.id || option} value={option.id || option}>
+          <MenuItem key={getOptionValue(option)} value={getOptionValue(option)}>
             {getOptionLabel(option)}
           </MenuItem>
         ))}
