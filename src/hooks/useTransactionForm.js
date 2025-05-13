@@ -4,19 +4,16 @@ import apiClient from "../api/axiosConfig";
 
 const useTransactionForm = (setTransactions) => {
   const [formData, setFormData] = useState(TransactionModel);
-  const [setCurrentTransaction] = useState(null);
   const [open, setOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
   const handleOpen = (transaction = null) => {
-    setCurrentTransaction(transaction);
     setFormData(transaction || TransactionModel);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setCurrentTransaction(null);
   };
 
   const handleChange = (e) => {
@@ -37,34 +34,52 @@ const useTransactionForm = (setTransactions) => {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      const userId = localStorage.getItem("userId");
-      if (!userId) throw new Error("UserId missing");
+ const handleSubmit = async () => {
+  const userId = localStorage.getItem("userId");
+  if (!userId) {
+    setSnackbar({ open: true, message: "User not found.", severity: "error" });
+    return;
+  }
 
-      const transactionData = {
-        ...formData,
-        userId,
-        amount: parseFloat(formData.amount),
-        categoryId: parseInt(formData.categoryId),
-        currencyId: parseInt(formData.currencyId),
-        date: new Date(formData.date).toISOString(),
-      };
+  try {
+    const transactionData = {
+      ...formData,
+      userId,
+      amount: parseFloat(formData.amount),
+      categoryId: parseInt(
+        typeof formData.categoryId === "object" ? formData.categoryId.id : formData.categoryId
+      ),
+      currencyId: parseInt(
+        typeof formData.currencyId === "object" ? formData.currencyId.id : formData.currencyId
+      ),
+      date: new Date(formData.date).toISOString(),
+    };
 
-      if (formData.id) {
-        await apiClient.put(`/transactions/${formData.id}`, transactionData);
-      } else {
-        await apiClient.post("/transactions", transactionData);
-      }
-
-      await fetchTransactions();
-      setSnackbar({ open: true, message: "Transaction saved!", severity: "success" });
-      handleClose();
-    } catch (error) {
-      console.error("Error saving transaction:", error);
-      setSnackbar({ open: true, message: "Error saving transaction", severity: "error" });
+    if (formData.id) {
+      await apiClient.put(`/transactions/${formData.id}`, transactionData);
+    } else {
+      await apiClient.post("/transactions", transactionData);
     }
-  };
+
+    setSnackbar({ open: true, message: "Transaction saved!", severity: "success" });
+    handleClose();
+
+    try {
+      const refreshed = await apiClient.get("/transactions", {
+        headers: { userId }
+      });
+      setTransactions(refreshed.data);
+    } catch (refreshErr) {
+      console.error("Error refreshing transactions:", refreshErr);
+      setSnackbar({ open: true, message: "Transaction saved but failed to refresh list.", severity: "warning" });
+    }
+
+  } catch (error) {
+    console.error("❌ Error saving transaction:", error);
+    setSnackbar({ open: true, message: "Error saving transaction", severity: "error" });
+  }
+};
+
 
   const handleDelete = async (id) => {
     try {

@@ -9,21 +9,15 @@ import {
 
 const AppSelect = ({
   label,
-  value, // this should be a primitive like "EUR"
+  value,
   onChange,
   options,
   getOptionLabel = (opt) => opt,
-  getOptionValue = (opt) => opt, // NEW: extract primitive key (e.g., currency.code)
+  getOptionValue = (opt) => opt,
   icon = null,
   ...props
 }) => {
-  const handleChange = (event) => {
-    const selectedValue = event.target.value;
-    const selectedOption = options.find(
-      (opt) => getOptionValue(opt) === selectedValue
-    );
-    onChange(selectedOption);
-  };
+  const resolvedValue = typeof value === "object" ? getOptionValue(value) : value;
 
   return (
     <Box>
@@ -44,8 +38,13 @@ const AppSelect = ({
       <TextField
         select
         fullWidth
-        value={value}
-        onChange={handleChange}
+        value={resolvedValue ?? ""}
+        onChange={(e) => {
+          const selected = options.find(
+            (opt) => getOptionValue(opt) === e.target.value
+          );
+          onChange(selected);
+        }}
         variant="outlined"
         InputProps={{
           startAdornment: icon ? (

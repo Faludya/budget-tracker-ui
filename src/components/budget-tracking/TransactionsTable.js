@@ -44,34 +44,34 @@ const TransactionsTable = () => {
 
   const { formData, open, handleOpen, handleClose, handleChange, handleSubmit, handleDelete, snackbar, setSnackbar, } = useTransactionForm(setTransactions);
   const { preferences } = useUserPreferences();
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const userId = localStorage.getItem("userId");
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
 
-      const [transactionsRes, categoriesRes, currenciesRes] = await Promise.all([
-        apiClient.get("/transactions", { headers: { userId } }),
-        apiClient.get("/categories", { headers: { userId } }),
-        apiClient.get("/currencies"),
-      ]);
+        const [transactionsRes, categoriesRes, currenciesRes] = await Promise.all([
+          apiClient.get("/transactions", { headers: { userId } }),
+          apiClient.get("/categories", { headers: { userId } }),
+          apiClient.get("/currencies"),
+        ]);
 
-      const transactions = transactionsRes.data.map((t) => ({
-        ...t,
-        id: t.id ?? t.transactionId,
-      }));
+        const transactions = transactionsRes.data.map((t) => ({
+          ...t,
+          id: t.id ?? t.transactionId,
+        }));
 
-      setTransactions(transactions);
-      setCategories(categoriesRes.data);
-      setCurrencies(currenciesRes.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+        setTransactions(transactions);
+        setCategories(categoriesRes.data);
+        setCurrencies(currenciesRes.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    if (preferences?.preferredCurrency) {
+      fetchData();
     }
-  };
-
-  if (preferences?.preferredCurrency) {
-    fetchData();
-  }
-}, [preferences?.preferredCurrency]); 
+  }, [preferences?.preferredCurrency]);
 
   const columns = [
     {
@@ -153,7 +153,7 @@ useEffect(() => {
             label="From"
             name="fromDate"
             value={filters.fromDate}
-            onChange={() => {}}
+            onChange={() => { }}
             icon={<CalendarMonth fontSize="small" />}
             sx={{ maxWidth: 220 }}
           />
@@ -161,7 +161,7 @@ useEffect(() => {
             label="To"
             name="toDate"
             value={filters.toDate}
-            onChange={() => {}}
+            onChange={() => { }}
             icon={<CalendarMonth fontSize="small" />}
             sx={{ maxWidth: 220 }}
           />
@@ -169,7 +169,7 @@ useEffect(() => {
             label="Min Amount"
             name="amountMin"
             value={filters.amountMin}
-            onChange={() => {}}
+            onChange={() => { }}
             type="number"
             icon={<AttachMoney fontSize="small" />}
             sx={{ maxWidth: 220 }}
@@ -178,7 +178,7 @@ useEffect(() => {
             label="Max Amount"
             name="amountMax"
             value={filters.amountMax}
-            onChange={() => {}}
+            onChange={() => { }}
             type="number"
             icon={<AttachMoney fontSize="small" />}
             sx={{ maxWidth: 220 }}
@@ -199,7 +199,7 @@ useEffect(() => {
               value={filters.categoryId}
               options={categories}
               getOptionLabel={(opt) => opt.name}
-              onChange={() => {}}
+              onChange={() => { }}
               icon={<FolderOpen fontSize="small" />}
               sx={{ minWidth: 220 }}
             />
@@ -208,7 +208,7 @@ useEffect(() => {
               value={filters.type}
               options={[{ id: "Debit", name: "Debit" }, { id: "Credit", name: "Credit" }]}
               getOptionLabel={(opt) => opt.name}
-              onChange={() => {}}
+              onChange={() => { }}
               icon={<Label fontSize="small" />}
               sx={{ minWidth: 220 }}
             />
@@ -264,7 +264,7 @@ useEffect(() => {
         />
         <AppSelect
           label="Category"
-          value={formData.categoryId}
+          value={formData.categoryId ?? ""}
           options={categories}
           getOptionLabel={(opt) => opt.name}
           onChange={(val) =>
@@ -274,7 +274,7 @@ useEffect(() => {
         />
         <AppSelect
           label="Currency"
-          value={formData.currencyId}
+          value={formData.currencyId ?? ""}
           options={currencies}
           getOptionLabel={(opt) => opt.name}
           onChange={(val) =>
@@ -287,6 +287,7 @@ useEffect(() => {
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
       >
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
