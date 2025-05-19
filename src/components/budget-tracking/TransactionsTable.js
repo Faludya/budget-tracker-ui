@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// ✅ TransactionsTable.js (fixed Type select + React warnings)
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Button,
   Box,
@@ -19,8 +20,9 @@ import {
   Delete,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
-import apiClient from "../../api/axiosConfig";
+import useTransactions from "../../hooks/useTransactions";
 import useTransactionForm from "../../hooks/useTransactionForm";
+import apiClient from "../../api/axiosConfig";
 import AppModal from "../../components/common/AppModal";
 import AppSelect from "../../components/common/AppSelect";
 import AppInput from "../../components/common/AppInput";
@@ -29,49 +31,98 @@ import AppTable from "../../components/common/AppTable";
 import { useUserPreferences } from "../../contexts/UserPreferencesContext";
 
 const TransactionsTable = () => {
-  const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [filters, setFilters] = useState({
+  const FILTERS_STORAGE_KEY = "transactions-filters";
+
+  const defaultFilters = {
     fromDate: dayjs().startOf("month"),
     toDate: dayjs().endOf("month"),
     amountMin: "",
     amountMax: "",
     categoryId: "",
     type: "",
-  });
+  };
 
-  const { formData, open, handleOpen, handleClose, handleChange, handleSubmit, handleDelete, snackbar, setSnackbar, } = useTransactionForm(setTransactions);
+  const savedFilters = JSON.parse(localStorage.getItem(FILTERS_STORAGE_KEY));
+  const [filters, setFilters] = useState(
+    savedFilters
+      ? {
+          ...savedFilters,
+          fromDate: savedFilters.fromDate ? dayjs(savedFilters.fromDate) : defaultFilters.fromDate,
+          toDate: savedFilters.toDate ? dayjs(savedFilters.toDate) : defaultFilters.toDate,
+        }
+      : defaultFilters
+  );
+
+  const typeOptions = [
+    { id: "Debit", name: "Debit" },
+    { id: "Credit", name: "Credit" },
+  ];
+
+  const {
+    transactions,
+    setTransactions,
+    fetchFilteredTransactions,
+  } = useTransactions();
+
+  const {
+    formData,
+    open,
+    handleOpen,
+    handleClose,
+    handleChange,
+    handleSubmit,
+    handleDelete,
+    snackbar,
+    setSnackbar,
+  } = useTransactionForm(setTransactions);
+
   const { preferences } = useUserPreferences();
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const userId = localStorage.getItem("userId");
+
+      const [categoriesData, currenciesData] = await Promise.all([
+        apiClient.get("/categories", { headers: { userId } }),
+        apiClient.get("/currencies"),
+      ]);
+
+      await fetchFilteredTransactions(filters);
+
+      setCategories(categoriesData.data);
+      setCurrencies(currenciesData.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, fetchFilteredTransactions]);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userId = localStorage.getItem("userId");
-
-        const [transactionsRes, categoriesRes, currenciesRes] = await Promise.all([
-          apiClient.get("/transactions", { headers: { userId } }),
-          apiClient.get("/categories", { headers: { userId } }),
-          apiClient.get("/currencies"),
-        ]);
-
-        const transactions = transactionsRes.data.map((t) => ({
-          ...t,
-          id: t.id ?? t.transactionId,
-        }));
-
-        setTransactions(transactions);
-        setCategories(categoriesRes.data);
-        setCurrencies(currenciesRes.data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
     if (preferences?.preferredCurrency) {
       fetchData();
     }
-  }, [preferences?.preferredCurrency]);
+  }, [preferences?.preferredCurrency, fetchData]);
+
+  useEffect(() => {
+    if (
+      formData.categoryId &&
+      categories.length > 0 &&
+      !categories.find(cat => cat.id === formData.categoryId)
+    ) {
+      handleChange({ target: { name: "categoryId", value: "" } });
+    }
+  }, [categories, formData.categoryId, handleChange]);
+
+  const updateFilters = (updated) => {
+    setFilters(updated);
+    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(updated));
+  };
 
   const columns = [
     {
@@ -88,8 +139,7 @@ const TransactionsTable = () => {
       renderCell: ({ row }) => {
         const symbol = currencies.find(c => c.code === preferences?.preferredCurrency)?.symbol ?? "";
         return `${row.convertedAmount ?? row.amount} ${symbol}`;
-      }
-
+      },
     },
     { field: "description", headerName: "Description", flex: 2 },
     {
@@ -153,7 +203,7 @@ const TransactionsTable = () => {
             label="From"
             name="fromDate"
             value={filters.fromDate}
-            onChange={() => { }}
+            onChange={(value) => updateFilters({ ...filters, fromDate: value })}
             icon={<CalendarMonth fontSize="small" />}
             sx={{ maxWidth: 220 }}
           />
@@ -161,7 +211,7 @@ const TransactionsTable = () => {
             label="To"
             name="toDate"
             value={filters.toDate}
-            onChange={() => { }}
+            onChange={(value) => updateFilters({ ...filters, toDate: value })}
             icon={<CalendarMonth fontSize="small" />}
             sx={{ maxWidth: 220 }}
           />
@@ -169,7 +219,7 @@ const TransactionsTable = () => {
             label="Min Amount"
             name="amountMin"
             value={filters.amountMin}
-            onChange={() => { }}
+            onChange={(e) => updateFilters({ ...filters, amountMin: e.target.value })}
             type="number"
             icon={<AttachMoney fontSize="small" />}
             sx={{ maxWidth: 220 }}
@@ -178,7 +228,7 @@ const TransactionsTable = () => {
             label="Max Amount"
             name="amountMax"
             value={filters.amountMax}
-            onChange={() => { }}
+            onChange={(e) => updateFilters({ ...filters, amountMax: e.target.value })}
             type="number"
             icon={<AttachMoney fontSize="small" />}
             sx={{ maxWidth: 220 }}
@@ -196,93 +246,102 @@ const TransactionsTable = () => {
           <Stack direction="row" spacing={2} flexWrap="wrap">
             <AppSelect
               label="Category"
-              value={filters.categoryId}
+              value={categories.find((cat) => cat.id === filters.categoryId) || ""}
               options={categories}
               getOptionLabel={(opt) => opt.name}
-              onChange={() => { }}
+              onChange={(val) => updateFilters({ ...filters, categoryId: val?.id ?? "" })}
               icon={<FolderOpen fontSize="small" />}
               sx={{ minWidth: 220 }}
             />
             <AppSelect
               label="Type"
-              value={filters.type}
-              options={[{ id: "Debit", name: "Debit" }, { id: "Credit", name: "Credit" }]}
+              value={typeOptions.find(opt => opt.id === filters.type) || ""}
+              options={typeOptions}
               getOptionLabel={(opt) => opt.name}
-              onChange={() => { }}
+              onChange={(val) => updateFilters({ ...filters, type: val?.id ?? "" })}
               icon={<Label fontSize="small" />}
               sx={{ minWidth: 220 }}
             />
           </Stack>
 
           <Stack direction="row" spacing={2} mt={{ xs: 2, md: 0 }}>
-            <Button variant="contained" sx={{ minWidth: 120, borderRadius: 2 }}>
-              Apply
-            </Button>
-            <Button variant="outlined" sx={{ minWidth: 120, borderRadius: 2 }}>
+            <Button
+              variant="outlined"
+              sx={{ minWidth: 120, borderRadius: 2 }}
+              onClick={() => {
+                localStorage.removeItem(FILTERS_STORAGE_KEY);
+                const resetFilters = { ...defaultFilters };
+                setFilters(resetFilters);
+              }}
+            >
               Reset
             </Button>
           </Stack>
         </Stack>
       </Stack>
 
-      <AppTable rows={transactions} columns={columns} pageSize={5} autoHeight />
+      <AppTable rows={transactions} columns={columns} pageSize={5} autoHeight loading={loading} />
 
-      <AppModal
-        open={open}
-        title={formData.id ? "Edit Transaction" : "Add Transaction"}
-        onClose={handleClose}
-        onSave={handleSubmit}
-      >
-        <AppInput
-          label="Type"
-          name="type"
-          value={formData.type}
-          onChange={handleChange}
-          icon={<Label fontSize="small" />}
-        />
-        <AppInput
-          label="Amount"
-          name="amount"
-          value={formData.amount}
-          onChange={handleChange}
-          type="number"
-          icon={<AttachMoney fontSize="small" />}
-        />
-        <AppInput
-          label="Description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          icon={<Notes fontSize="small" />}
-        />
-        <AppDatePicker
-          label="Date"
-          name="date"
-          value={formData.date}
-          onChange={handleChange}
-          icon={<CalendarMonth fontSize="small" />}
-        />
-        <AppSelect
-          label="Category"
-          value={formData.categoryId ?? ""}
-          options={categories}
-          getOptionLabel={(opt) => opt.name}
-          onChange={(val) =>
-            handleChange({ target: { name: "categoryId", value: val } })
-          }
-          icon={<FolderOpen fontSize="small" />}
-        />
-        <AppSelect
-          label="Currency"
-          value={formData.currencyId ?? ""}
-          options={currencies}
-          getOptionLabel={(opt) => opt.name}
-          onChange={(val) =>
-            handleChange({ target: { name: "currencyId", value: val } })
-          }
-          icon={<MonetizationOn fontSize="small" />}
-        />
-      </AppModal>
+      {categories.length > 0 && (
+        <AppModal
+          open={open}
+          title={formData.id ? "Edit Transaction" : "Add Transaction"}
+          onClose={handleClose}
+          onSave={handleSubmit}
+        >
+          <AppInput
+            label="Type"
+            name="type"
+            value={formData.type}
+            onChange={handleChange}
+            icon={<Label fontSize="small" />}
+          />
+          <AppInput
+            label="Amount"
+            name="amount"
+            value={formData.amount}
+            onChange={handleChange}
+            type="number"
+            icon={<AttachMoney fontSize="small" />}
+          />
+          <AppInput
+            label="Description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            icon={<Notes fontSize="small" />}
+          />
+          <AppDatePicker
+            label="Date"
+            name="date"
+            value={formData.date}
+            onChange={handleChange}
+            icon={<CalendarMonth fontSize="small" />}
+          />
+          <AppSelect
+            label="Category"
+            value={categories.find((cat) => cat.id === formData.categoryId) || ""}
+            options={categories}
+            getOptionLabel={(opt) => opt.name}
+            onChange={(val) =>
+              handleChange({ target: { name: "categoryId", value: val?.id ?? "" } })
+            }
+            icon={<FolderOpen fontSize="small" />}
+            sx={{ minWidth: 220 }}
+          />
+          <AppSelect
+            label="Currency"
+            value={currencies.find((cur) => cur.id === formData.currencyId) || ""}
+            options={currencies}
+            getOptionLabel={(opt) => opt.name}
+            onChange={(val) =>
+              handleChange({ target: { name: "currencyId", value: val?.id ?? "" } })
+            }
+            icon={<MonetizationOn fontSize="small" />}
+            sx={{ minWidth: 220 }}
+          />
+        </AppModal>
+      )}
 
       <Snackbar
         open={snackbar.open}

@@ -49,9 +49,6 @@ export default function Navbar() {
   const [currencies, setCurrencies] = React.useState([]);
   const { preferences, setPreferences } = useUserPreferences();
   const { fetchTransactions } = useTransactionContext();
-  const selectedCurrency = currencies.find(
-    (c) => c.code === preferences?.preferredCurrency
-  );
 
   const navigate = useNavigate();
   const [snackbar, setSnackbar] = React.useState({
@@ -81,7 +78,7 @@ export default function Navbar() {
         headers: { userId: localStorage.getItem("userId") },
       });
       setPreferences(updated);
-      fetchTransactions(); 
+      fetchTransactions();
       setSnackbar({ open: true, message: "Currency updated!", severity: "info" });
     } catch (error) {
       console.error("Failed to update currency preference", error);
@@ -148,21 +145,18 @@ export default function Navbar() {
           <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
             {isAuthenticated && preferences && (
               <AppSelect
-  value={preferences?.preferredCurrency}
-  options={currencies}
-  getOptionLabel={(opt) => `${opt.symbol} - ${opt.code}`}
-  getOptionValue={(opt) => opt.code}
-  onChange={(selectedCurrency) => {
-    if (selectedCurrency) {
-      handleCurrencyChange(selectedCurrency.code);
-    }
-  }}
-  icon={<MonetizationOn fontSize="small" />}
-  sx={{ minWidth: 150 }}
-/>
-
-
-
+                value={preferences?.preferredCurrency}
+                options={currencies}
+                getOptionLabel={(opt) => `${opt.symbol} - ${opt.code}`}
+                getOptionValue={(opt) => opt.code}
+                onChange={(selectedCurrency) => {
+                  if (selectedCurrency) {
+                    handleCurrencyChange(selectedCurrency.code);
+                  }
+                }}
+                icon={<MonetizationOn fontSize="small" />}
+                sx={{ minWidth: 150 }}
+              />
             )}
 
             {isAuthenticated ? (

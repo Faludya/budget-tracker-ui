@@ -10,9 +10,10 @@ import {
   TablePagination,
   Paper,
   TableSortLabel,
+  CircularProgress,
 } from "@mui/material";
 
-const AppTable = ({ columns, rows, rowsPerPageOptions = [5, 10, 25] }) => {
+const AppTable = ({ columns, rows, loading = false, rowsPerPageOptions = [5, 10, 25] }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageOptions[0]);
   const [order, setOrder] = useState("asc");
@@ -52,15 +53,19 @@ const AppTable = ({ columns, rows, rowsPerPageOptions = [5, 10, 25] }) => {
       sx={{
         borderRadius: 4,
         overflow: "hidden",
-        backgroundColor: (theme) => theme.palette.mode === "dark" ? "#111" : "#fff",
+        backgroundColor: (theme) =>
+          theme.palette.mode === "dark" ? "#111" : "#fff",
         color: (theme) => theme.palette.text.primary,
       }}
     >
       <Table>
         <TableHead>
-          <TableRow         sx={{
-          backgroundColor: (theme) => theme.palette.mode === "dark" ? "#1e1e1e" : "#f9f9f9",
-        }}>
+          <TableRow
+            sx={{
+              backgroundColor: (theme) =>
+                theme.palette.mode === "dark" ? "#1e1e1e" : "#f9f9f9",
+            }}
+          >
             {columns.map((col) => (
               <TableCell
                 key={col.field}
@@ -86,20 +91,29 @@ const AppTable = ({ columns, rows, rowsPerPageOptions = [5, 10, 25] }) => {
         </TableHead>
 
         <TableBody>
-          {paginatedRows.map((row) => (
-            <TableRow key={row.id}>
-              {columns.map((col) => (
-                <TableCell key={col.field} sx={{ py: 2 }}>
-                  {col.renderCell ? col.renderCell({ row }) : row[col.field]}
-                </TableCell>
-              ))}
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={columns.length} align="center" sx={{ py: 5 }}>
+                <CircularProgress />
+              </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            paginatedRows.map((row) => (
+              <TableRow key={row.id}>
+                {columns.map((col) => (
+                  <TableCell key={col.field} sx={{ py: 2 }}>
+                    {col.renderCell ? col.renderCell({ row }) : row[col.field]}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
 
-      <Box display="flex" justifyContent="flex-end" px={2} pt={1}>
-        <TablePagination
+      {!loading && (
+        <Box display="flex" justifyContent="flex-end" px={2} pt={1}>
+          <TablePagination
             component="div"
             count={rows.length}
             page={page}
@@ -107,9 +121,9 @@ const AppTable = ({ columns, rows, rowsPerPageOptions = [5, 10, 25] }) => {
             onPageChange={handleChangePage}
             rowsPerPageOptions={rowsPerPageOptions}
             onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+          />
         </Box>
-
+      )}
     </TableContainer>
   );
 };
