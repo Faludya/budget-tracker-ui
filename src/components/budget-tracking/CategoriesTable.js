@@ -6,10 +6,6 @@ import {
   Snackbar,
   Stack,
   Alert,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Paper,
   useTheme,
 } from "@mui/material";
@@ -23,24 +19,12 @@ import {
 import useCategoryForm from "../../hooks/useCategoryForm";
 import AppInput from "../../components/common/AppInput";
 import AppModal from "../../components/common/AppModal";
+import AppSelect from "../../components/common/AppSelect";
 
 const CategoriesTable = () => {
   const [categories, setCategories] = React.useState([]);
   const theme = useTheme();
-
-  const {
-    formData,
-    open,
-    handleOpen,
-    handleClose,
-    handleChange,
-    handleSubmit,
-    handleDelete,
-    snackbar,
-    setSnackbar,
-    groupedCategories,
-    expanded,
-    setExpanded,
+  const { formData, open, handleOpen, handleClose, handleChange, handleSubmit, handleDelete, snackbar, setSnackbar, groupedCategories, expanded, setExpanded,
   } = useCategoryForm(setCategories);
 
   const toggleExpand = (id) => {
@@ -49,6 +33,13 @@ const CategoriesTable = () => {
       [id]: !prev[id],
     }));
   };
+
+  const parentOptions = [
+  { id: null, name: "None" },
+  ...categories.filter((cat) =>
+    formData?.id ? cat.id !== formData.id && !cat.parentCategoryId : !cat.parentCategoryId
+  ),
+];
 
   const renderCategoryList = (categories, depth = 0) => {
     return categories.map((cat) => (
@@ -203,6 +194,7 @@ const CategoriesTable = () => {
         title={formData.id ? "Edit Category" : "Add Category"}
         onClose={handleClose}
         onSave={handleSubmit}
+        sx={{ mx: 'auto', my: '10vh' }}
       >
         <AppInput
           label="Name"
@@ -211,24 +203,19 @@ const CategoriesTable = () => {
           onChange={handleChange}
         />
 
-        <FormControl fullWidth sx={{ mt: 2 }}>
-          <InputLabel>Parent Category</InputLabel>
-          <Select
-            name="parentCategoryId"
-            value={formData.parentCategoryId || ""}
-            label="Parent Category"
-            onChange={handleChange}
-          >
-            <MenuItem value="">None</MenuItem>
-            {(categories || [])
-              .filter((cat) => cat.id !== formData.id)
-              .map((cat) => (
-                <MenuItem key={cat.id} value={cat.id}>
-                  {cat.name}
-                </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
+        <AppSelect
+  label="Parent Category"
+  value={
+    parentOptions.find((cat) => cat.id === formData.parentCategoryId) || parentOptions[0]
+  }
+  options={parentOptions}
+  getOptionLabel={(opt) => opt.name}
+  onChange={(val) =>
+    handleChange({ target: { name: "parentCategoryId", value: val?.id ?? null } })
+  }
+  sx={{ mt: 2, minWidth: 220 }}
+/>
+
       </AppModal>
 
       <Snackbar

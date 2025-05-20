@@ -9,6 +9,7 @@ import SignUp from "./pages/SignUp";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import BudgetTracker from "./pages/BudgetTracker";
+import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import { UserPreferencesProvider } from "./contexts/UserPreferencesContext";
@@ -52,6 +53,7 @@ function App() {
                       <Route path="/privacy" element={<Privacy />} />
                       <Route path="/contactus" element={<ContactUs />} />
                       <Route element={<ProtectedRoute />}>
+                        <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/budget-tracker" element={<BudgetTracker />} />
                         <Route path="/categories" element={<Categories />} />
                       </Route>

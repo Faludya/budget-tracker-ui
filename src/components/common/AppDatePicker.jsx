@@ -4,7 +4,7 @@ import { DatePicker } from "@mui/x-date-pickers";
 import { CalendarMonth } from "@mui/icons-material";
 import dayjs from "dayjs";
 
-const AppDatePicker = ({ label, value, onChange }) => {
+const AppDatePicker = ({ label, value, onChange, views = ["year", "month", "day"], format = "DD/MM/YYYY" }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -31,7 +31,8 @@ const AppDatePicker = ({ label, value, onChange }) => {
         onChange={(newVal) =>
           onChange({ target: { name: "date", value: newVal?.isValid?.() ? newVal.toISOString() : "" } })
         }
-        format="DD/MM/YYYY"
+         views={views} 
+        format={format}
         slots={{
           textField: TextField,
           openPickerButton: () => null, // ✅ removes the entire button including spacing

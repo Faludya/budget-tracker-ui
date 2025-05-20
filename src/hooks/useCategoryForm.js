@@ -7,7 +7,8 @@ const useCategoryForm = (setCategories) => {
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
   const [groupedCategories, setGroupedCategories] = useState([]);
   const [expanded, setExpanded] = useState({});
-
+  const userId = localStorage.getItem("userId");
+  
   const groupCategories = (categories) => {
     const map = new Map();
     const roots = [];
@@ -31,7 +32,6 @@ const useCategoryForm = (setCategories) => {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const userId = localStorage.getItem("userId");
       const response = await apiClient.get("/categories", {
         headers: { userId },
       });
@@ -57,7 +57,7 @@ const useCategoryForm = (setCategories) => {
 
 
   const handleOpen = (data) => {
-    setFormData(data || {});
+    setFormData(data || { parentCategoryId: null });
     setOpen(true);
   };
 
@@ -79,7 +79,7 @@ const useCategoryForm = (setCategories) => {
       if (formData.id) {
         await apiClient.put(`/categories/${formData.id}`, formData);
       } else {
-        await apiClient.post("/categories", formData);
+        await apiClient.post("/categories", {...formData, userId}, {headers : {userId}});
       }
 
       handleClose();
