@@ -1,5 +1,8 @@
-import { Button, Menu, MenuItem } from '@mui/material';
-import { useState } from 'react';
+import { Stack, Button, Menu, MenuItem, Tooltip, IconButton } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { useState } from "react";
+import dayjs from "dayjs";
+import apiClient from "../../api/axiosConfig"; // adjust path based on your project
 
 const ExportButton = ({ filters }) => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -8,36 +11,61 @@ const ExportButton = ({ filters }) => {
   const handleClose = () => setAnchorEl(null);
 
   const handleExport = async (format) => {
-    const query = new URLSearchParams({
+    const queryObj = {
       ...filters,
       format,
-    }).toString();
+      fromDate: filters.fromDate ? dayjs(filters.fromDate).format("YYYY-MM-DD") : undefined,
+      toDate: filters.toDate ? dayjs(filters.toDate).format("YYYY-MM-DD") : undefined,
+    };
 
-    const response = await fetch(`/api/transactions/export?${query}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
+    const query = new URLSearchParams(queryObj).toString();
 
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `transactions_export.${format === 'excel' ? 'xlsx' : 'pdf'}`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    try {
+      const response = await apiClient.get(`/transactions/export?${query}`, {
+        responseType: "blob",
+      });
 
-    handleClose();
+      const blob = new Blob([response.data], {
+        type:
+          format === "excel"
+            ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            : "application/pdf",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `transactions_export.${format === "excel" ? "xlsx" : "pdf"}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      handleClose();
+    }
   };
 
   return (
-    <>
-      <Button onClick={handleClick} variant="outlined">Export ▼</Button>
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <Button onClick={handleClick} variant="outlined">
+        Export ▼
+      </Button>
+
+      <Tooltip
+        title="Your exported file will include only the transactions currently filtered."
+        arrow
+      >
+        <IconButton size="small" sx={{ border: "1px solid #ccc", borderRadius: 2 }}>
+          <InfoOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
-        <MenuItem onClick={() => handleExport('pdf')}>Export as PDF</MenuItem>
-        <MenuItem onClick={() => handleExport('excel')}>Export as Excel</MenuItem>
+        <MenuItem onClick={() => handleExport("pdf")}>Export as PDF</MenuItem>
+        <MenuItem onClick={() => handleExport("excel")}>Export as Excel</MenuItem>
       </Menu>
-    </>
+    </Stack>
   );
 };
+
+export default ExportButton;

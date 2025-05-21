@@ -28,6 +28,7 @@ import AppSelect from "../../components/common/AppSelect";
 import AppInput from "../../components/common/AppInput";
 import AppDatePicker from "../../components/common/AppDatePicker";
 import AppTable from "../../components/common/AppTable";
+import ExportMenu from "../../components/common/ExportMenu";
 import { useUserPreferences } from "../../contexts/UserPreferencesContext";
 
 const TransactionsTable = () => {
@@ -265,6 +266,7 @@ const TransactionsTable = () => {
           </Stack>
 
           <Stack direction="row" spacing={2} mt={{ xs: 2, md: 0 }}>
+            <ExportMenu filters={filters} />
             <Button
               variant="outlined"
               sx={{ minWidth: 120, borderRadius: 2 }}
