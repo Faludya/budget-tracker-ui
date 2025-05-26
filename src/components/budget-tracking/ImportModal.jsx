@@ -158,10 +158,15 @@ const ImportModal = ({ open, onClose, onContinue }) => {
               <Button
                 variant="contained"
                 onClick={handleContinue}
-                disabled={!selectedTemplate || !file}
-                sx={{
-                  color: !selectedTemplate || !file ? "#666" : "#fff",
-                }}
+                  disabled={!selectedTemplate || !file}
+                  sx={{
+                    "&.Mui-disabled": {
+                      backgroundColor: "#e0e0e0",
+                      color: "#9e9e9e",
+                      boxShadow: "none",
+                      cursor: "not-allowed",
+                    },
+                  }}
               >
                 Continue
               </Button>

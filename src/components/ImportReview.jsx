@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Stack,
   Paper,
   Table,
   TableBody,
@@ -18,6 +17,7 @@ import {
   TextField,
   Select,
   MenuItem,
+  CircularProgress,
 } from "@mui/material";
 import { WarningAmberRounded } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -35,6 +35,8 @@ const ImportReview = () => {
   const [currencies, setCurrencies] = useState([]);
   const [deleteIndex, setDeleteIndex] = useState(null);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +54,8 @@ const ImportReview = () => {
         setCurrencies(currenciesRes.data);
       } catch (error) {
         console.error("Failed to fetch session or meta info:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -86,9 +90,32 @@ const ImportReview = () => {
     }
   };
 
+  const handleSaveDraft = async () => {
+    try {
+      setSaving(true);
+      const updatePromises = transactions.map((tx) =>
+        apiClient.put(`/import/session/${sessionId}/transaction/${tx.id}`, tx)
+      );
+      await Promise.all(updatePromises);
+    } catch (error) {
+      console.error("Failed to save draft:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const isValid = useMemo(() => {
-    return transactions.length > 0 && transactions.every(
-      (tx) => !!tx.date && !!tx.description?.trim() && !isNaN(tx.amount) && tx.amount !== "" && !!tx.currency && !!tx.category
+    return (
+      transactions.length > 0 &&
+      transactions.every(
+        (tx) =>
+          !!tx.date &&
+          !!tx.description?.trim() &&
+          !isNaN(tx.amount) &&
+          tx.amount !== "" &&
+          !!tx.currency &&
+          !!tx.category
+      )
     );
   }, [transactions]);
 
@@ -101,22 +128,17 @@ const ImportReview = () => {
     }
   };
 
-  return (
-    <Box p={3}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h5">Review Imported Transactions</Typography>
-        <Stack direction="row" spacing={2}>
-          <Button variant="outlined" onClick={() => { setConfirmCancelOpen(true) }}>Cancel</Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleCompleteImport}
-            disabled={!isValid}
-          >
-            Complete Import
-          </Button>
-        </Stack>
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
+        <CircularProgress />
       </Box>
+    );
+  }
+
+  return (
+    <Box p={3} pb={12}>
+      <Typography variant="h5" mb={3}>Review Imported Transactions</Typography>
 
       <Paper>
         <Table>
@@ -151,7 +173,6 @@ const ImportReview = () => {
                       sx={errors.date ? { border: '1px solid red', borderRadius: 1 } : {}}
                     />
                   </TableCell>
-
                   <TableCell>
                     <TextField
                       fullWidth
@@ -160,7 +181,6 @@ const ImportReview = () => {
                       sx={errors.description ? { border: '1px solid red', borderRadius: 1 } : {}}
                     />
                   </TableCell>
-
                   <TableCell>
                     <TextField
                       type="number"
@@ -170,20 +190,18 @@ const ImportReview = () => {
                       sx={errors.amount ? { border: '1px solid red', borderRadius: 1 } : {}}
                     />
                   </TableCell>
-
                   <TableCell>
                     <Select
                       fullWidth
                       value={tx.currency || ""}
                       onChange={(e) => handleChange(index, "currency", e.target.value)}
-                      sx={errors.currency ? { border: '1px solid red', borderRadius: 1 } : {}}
+                     sx={errors.currency ? { border: '1px solid red', borderRadius: 1 } : {}}
                     >
                       {currencies.map((cur) => (
                         <MenuItem key={cur.id} value={cur.code}>{cur.code}</MenuItem>
                       ))}
                     </Select>
                   </TableCell>
-
                   <TableCell>
                     <AppSelect
                       options={categories}
@@ -191,10 +209,9 @@ const ImportReview = () => {
                       onChange={(val) => handleChange(index, "category", val.name)}
                       getOptionLabel={(opt) => opt.name}
                       getOptionValue={(opt) => opt.name}
-                      sx={errors.category ? { border: '1px solid red', borderRadius: 1 } : {}}
+                      sx={errors.category ? { border: "1px solid red", borderRadius: 1 } : {}}
                     />
                   </TableCell>
-
                   <TableCell>
                     <Tooltip title="Delete Transaction">
                       <IconButton onClick={() => setDeleteIndex(index)}>
@@ -203,15 +220,48 @@ const ImportReview = () => {
                     </Tooltip>
                   </TableCell>
                 </TableRow>
-
               );
             })}
           </TableBody>
-
-
-
         </Table>
       </Paper>
+
+      <Box
+        position="fixed"
+        bottom={0}
+        left={0}
+        width="100%"
+        bgcolor="white"
+        borderTop="1px solid #ddd"
+        py={2}
+        px={3}
+        display="flex"
+        justifyContent="flex-end"
+        gap={2}
+        zIndex={1300}
+      >
+        <Button variant="outlined" onClick={() => setConfirmCancelOpen(true)}>Cancel</Button>
+        <Button variant="outlined" onClick={handleSaveDraft} disabled={saving}>
+          {saving ? <CircularProgress size={20} /> : "Save Draft"}
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleCompleteImport}
+          disabled={!isValid}
+          sx={{
+            "&.Mui-disabled": {
+              backgroundColor: "#e0e0e0",
+              color: "#9e9e9e",
+              boxShadow: "none",
+              cursor: "not-allowed",
+            },
+          }}
+        >
+          Complete Import
+        </Button>
+
+      </Box>
 
       <Dialog
         open={deleteIndex !== null}
