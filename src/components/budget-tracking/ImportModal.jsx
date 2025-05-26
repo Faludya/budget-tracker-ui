@@ -12,10 +12,9 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
-
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { styled } from "@mui/system";
-import AppSelect from "../common/AppSelect"; // adjust path as needed
+import AppSelect from "../common/AppSelect";
 
 const importTemplates = [
   { id: "Revolut", name: "Revolut" },
@@ -39,33 +38,55 @@ const ImportModal = ({ open, onClose, onContinue }) => {
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const validateFileType = (filename) => {
+    return /\.(csv|xlsx)$/i.test(filename);
+  };
+
+  const handleFileSelect = (e) => {
+    const uploadedFile = e.target.files[0];
+    if (uploadedFile && !validateFileType(uploadedFile.name)) {
+      setError("Invalid file format. Please upload a .csv or .xlsx file.");
+      setFile(null);
+    } else {
+      setFile(uploadedFile);
+      setError("");
+    }
+  };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files.length > 0) {
-      setFile(e.dataTransfer.files[0]);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && !validateFileType(droppedFile.name)) {
+      setError("Invalid file format. Please upload a .csv or .xlsx file.");
+      setFile(null);
+    } else {
+      setFile(droppedFile);
+      setError("");
     }
   };
 
-  const handleFileSelect = (e) => {
-    setFile(e.target.files[0]);
-  
-  };
   const handleContinue = async () => {
     if (selectedTemplate && file) {
       setLoading(true);
+      setError("");
+
       try {
         await onContinue({ template: selectedTemplate, file });
         setFile(null);
         setSelectedTemplate("");
-      } catch (error) {
-        console.error("Import failed:", error);
+        onClose();
+
+      } catch (err) {
+        console.error("Import failed:", err);
+        setError("Import failed. Please check that the selected template matches the uploaded file.");
       } finally {
         setLoading(false);
       }
     }
-  };
+};
 
   const currentTemplate = importTemplates.find((t) => t.id === selectedTemplate) || "";
 
@@ -102,8 +123,14 @@ const ImportModal = ({ open, onClose, onContinue }) => {
           >
             <DropArea isDragging={isDragging}>
               <Typography>
-                {file ? `Selected file: ${file.name}` : "Drag & drop or click to select a file"}
+                {file ? `Selected file: ${file.name}` : "Drag & drop or click to select a .csv or .xlsx file"}
               </Typography>
+              {error && (
+                <Box mt={2} p={2} border="1px solid red" borderRadius={2} bgcolor="#ffe5e5">
+                  <Typography color="error">{error}</Typography>
+                </Box>
+              )}
+
               <input
                 id="fileInput"
                 type="file"

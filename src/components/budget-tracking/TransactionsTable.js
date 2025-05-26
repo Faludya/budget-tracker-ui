@@ -39,7 +39,7 @@ const TransactionsTable = () => {
   const [currencies, setCurrencies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
-
+  const [activeImportSession, setActiveImportSession] = useState(null);
   const FILTERS_STORAGE_KEY = "transactions-filters";
 
   const defaultFilters = {
@@ -125,6 +125,22 @@ const TransactionsTable = () => {
     }
   }, [categories, formData.categoryId, handleChange]);
 
+  useEffect(() => {
+    const fetchActiveImportSession = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        const response = await apiClient.get(`/import/session/in-progress`, {
+          headers: { userId },
+        });
+        setActiveImportSession(response.data);
+      } catch (err) {
+        setActiveImportSession(null);
+      }
+    };
+
+    fetchActiveImportSession();
+  }, []);
+
   const updateFilters = (updated) => {
     setFilters(updated);
     localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(updated));
@@ -197,13 +213,22 @@ const TransactionsTable = () => {
             Add Transaction
           </Button>
 
-          <Button
-            variant="outlined"
-            startIcon={<UploadFile />}
-            onClick={() => setImportOpen(true)}
-          >
-            Import
-          </Button>
+          <Box display="flex" justifyContent="flex-end" mb={2}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<UploadFile />}
+              onClick={() => {
+                if (activeImportSession?.id) {
+                  navigate(`/import/review?sessionId=${activeImportSession.id}`);
+                } else {
+                  setImportOpen(true);
+                }
+              }}
+            >
+              {activeImportSession?.id ? "Resume Import" : "Import"}
+            </Button>
+          </Box>
         </Stack>
       </Box>
 
@@ -211,24 +236,22 @@ const TransactionsTable = () => {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onContinue={async (data) => {
-          try {
-            const formData = new FormData();
-            formData.append("file", data.file);
-            formData.append("template", data.template);
+          const formData = new FormData();
+          formData.append("file", data.file);
+          formData.append("template", data.template);
 
+          try {
             const response = await apiClient.post("/import/start-session", formData);
             const sessionId = response.data.id;
 
             navigate(`/import/review?sessionId=${sessionId}`);
-            setImportOpen(false);
+            return response.data;
           } catch (error) {
             console.error("Error uploading file:", error);
-          } finally {
-            setImportOpen(false);
+            throw error;
           }
         }}
       />
-
 
       {/* Filters UI */}
       <Stack spacing={2} mb={4}>

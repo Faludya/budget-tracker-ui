@@ -88,7 +88,7 @@ const ImportReview = () => {
 
   const isValid = useMemo(() => {
     return transactions.length > 0 && transactions.every(
-      (tx) => tx.date && tx.description && tx.amount && tx.currency && tx.category
+      (tx) => !!tx.date && !!tx.description?.trim() && !isNaN(tx.amount) && tx.amount !== "" && !!tx.currency && !!tx.category
     );
   }, [transactions]);
 
@@ -100,17 +100,6 @@ const ImportReview = () => {
       console.error("Error completing import:", error);
     }
   };
-
-  // if (!transactions.length) {
-  //   return (
-  //     <Box p={3}>
-  //       <Typography variant="h6">No data to review. Please start a new import.</Typography>
-  //       <Button onClick={() => navigate("/budget-tracker")} sx={{ mt: 2 }}>
-  //         Back to Transactions
-  //       </Button>
-  //     </Box>
-  //   );
-  // }
 
   return (
     <Box p={3}>
@@ -146,50 +135,55 @@ const ImportReview = () => {
               const errors = {
                 date: !tx.date,
                 description: !tx.description,
-                amount: !tx.amount,
+                amount: !tx.amount || isNaN(parseFloat(tx.amount)),
                 currency: !tx.currency,
                 category: !tx.category,
               };
+
               return (
                 <TableRow key={index}>
                   <TableCell>
                     <TextField
                       type="date"
                       fullWidth
-                      value={tx.date.split("T")[0]}
+                      value={tx.date ? tx.date.split("T")[0] : ""}
                       onChange={(e) => handleChange(index, "date", e.target.value)}
-                      error={errors.date}
+                      sx={errors.date ? { border: '1px solid red', borderRadius: 1 } : {}}
                     />
                   </TableCell>
+
                   <TableCell>
                     <TextField
                       fullWidth
                       value={tx.description}
                       onChange={(e) => handleChange(index, "description", e.target.value)}
-                      error={errors.description}
+                      sx={errors.description ? { border: '1px solid red', borderRadius: 1 } : {}}
                     />
                   </TableCell>
+
                   <TableCell>
                     <TextField
                       type="number"
                       fullWidth
                       value={tx.amount}
                       onChange={(e) => handleChange(index, "amount", e.target.value)}
-                      error={errors.amount}
+                      sx={errors.amount ? { border: '1px solid red', borderRadius: 1 } : {}}
                     />
                   </TableCell>
+
                   <TableCell>
                     <Select
                       fullWidth
                       value={tx.currency || ""}
                       onChange={(e) => handleChange(index, "currency", e.target.value)}
-                      error={errors.currency}
+                      sx={errors.currency ? { border: '1px solid red', borderRadius: 1 } : {}}
                     >
                       {currencies.map((cur) => (
                         <MenuItem key={cur.id} value={cur.code}>{cur.code}</MenuItem>
                       ))}
                     </Select>
                   </TableCell>
+
                   <TableCell>
                     <AppSelect
                       options={categories}
@@ -200,6 +194,7 @@ const ImportReview = () => {
                       sx={errors.category ? { border: '1px solid red', borderRadius: 1 } : {}}
                     />
                   </TableCell>
+
                   <TableCell>
                     <Tooltip title="Delete Transaction">
                       <IconButton onClick={() => setDeleteIndex(index)}>
@@ -208,9 +203,13 @@ const ImportReview = () => {
                     </Tooltip>
                   </TableCell>
                 </TableRow>
+
               );
             })}
           </TableBody>
+
+
+
         </Table>
       </Paper>
 
@@ -268,8 +267,6 @@ const ImportReview = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-
     </Box>
   );
 };
