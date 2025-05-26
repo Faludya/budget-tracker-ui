@@ -11,6 +11,7 @@ import ProtectedRoute from "./pages/ProtectedRoute";
 import BudgetTracker from "./pages/BudgetTracker";
 import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
+import ImportReview from "./components/ImportReview"
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import { UserPreferencesProvider } from "./contexts/UserPreferencesContext";
 import { TransactionProvider } from "./contexts/TransactionContext";
@@ -52,6 +53,7 @@ function App() {
                       <Route path="/google-auth" element={<GoogleAuthCallback />} />
                       <Route path="/privacy" element={<Privacy />} />
                       <Route path="/contactus" element={<ContactUs />} />
+                      <Route path="/import/review" element={<ImportReview />} />
                       <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/budget-tracker" element={<BudgetTracker />} />

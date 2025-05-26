@@ -1,5 +1,6 @@
 // ✅ TransactionsTable.js (fixed Type select + React warnings)
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Button,
   Box,
@@ -18,6 +19,7 @@ import {
   Add,
   Edit,
   Delete,
+  UploadFile,
 } from "@mui/icons-material";
 import dayjs from "dayjs";
 import useTransactions from "../../hooks/useTransactions";
@@ -29,12 +31,14 @@ import AppInput from "../../components/common/AppInput";
 import AppDatePicker from "../../components/common/AppDatePicker";
 import AppTable from "../../components/common/AppTable";
 import ExportMenu from "../../components/common/ExportMenu";
+import ImportModal from "./ImportModal";
 import { useUserPreferences } from "../../contexts/UserPreferencesContext";
 
 const TransactionsTable = () => {
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
 
   const FILTERS_STORAGE_KEY = "transactions-filters";
 
@@ -51,13 +55,14 @@ const TransactionsTable = () => {
   const [filters, setFilters] = useState(
     savedFilters
       ? {
-          ...savedFilters,
-          fromDate: savedFilters.fromDate ? dayjs(savedFilters.fromDate) : defaultFilters.fromDate,
-          toDate: savedFilters.toDate ? dayjs(savedFilters.toDate) : defaultFilters.toDate,
-        }
+        ...savedFilters,
+        fromDate: savedFilters.fromDate ? dayjs(savedFilters.fromDate) : defaultFilters.fromDate,
+        toDate: savedFilters.toDate ? dayjs(savedFilters.toDate) : defaultFilters.toDate,
+      }
       : defaultFilters
   );
-
+  const navigate = useNavigate();
+  
   const typeOptions = [
     { id: "Debit", name: "Debit" },
     { id: "Credit", name: "Credit" },
@@ -182,14 +187,48 @@ const TransactionsTable = () => {
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5">Transactions</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => handleOpen(null)}
-        >
-          Add Transaction
-        </Button>
+
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpen(null)}
+          >
+            Add Transaction
+          </Button>
+
+          <Button
+            variant="outlined"
+            startIcon={<UploadFile />}
+            onClick={() => setImportOpen(true)}
+          >
+            Import
+          </Button>
+        </Stack>
       </Box>
+
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onContinue={async (data) => {
+          try {
+            const formData = new FormData();
+            formData.append("file", data.file);
+            formData.append("template", data.template);
+
+            const response = await apiClient.post("/import/start-session", formData);
+            const sessionId = response.data.id;
+
+            navigate(`/import/review?sessionId=${sessionId}`);
+            setImportOpen(false);
+          } catch (error) {
+            console.error("Error uploading file:", error);
+          } finally {
+            setImportOpen(false);
+          }
+        }}
+      />
+
 
       {/* Filters UI */}
       <Stack spacing={2} mb={4}>

@@ -1,71 +1,137 @@
 import React, { useState } from "react";
 import {
-  Box,
-  Stack,
-  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
-  InputLabel,
-  MenuItem,
-  Select,
-  FormControl,
-  TextField,
+  Typography,
+  Stack,
+  Box,
+  Tooltip,
+  IconButton,
 } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { styled } from "@mui/system";
+import AppSelect from "../common/AppSelect"; // adjust path as needed
 
-const importTemplates = ["Revolut", "Raiffeisen", "BCR"];
+const importTemplates = [
+  { id: "Revolut", name: "Revolut" },
+  { id: "Raiffeisen", name: "Raiffeisen" },
+  { id: "BCR", name: "BCR" },
+];
 
-const ImportStart = ({ onContinue }) => {
+const DropArea = styled("div")(({ theme, isDragging }) => ({
+  border: "2px dashed #aaa",
+  padding: "32px",
+  borderRadius: "12px",
+  textAlign: "center",
+  cursor: "pointer",
+  backgroundColor: isDragging ? "#f0f4ff" : "#fafafa",
+  transition: "background-color 0.3s ease, border 0.3s ease",
+  borderColor: isDragging ? theme.palette.primary.main : "#aaa",
+}));
+
+const ImportModal = ({ open, onClose, onContinue }) => {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [file, setFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const handleFileChange = (e) => {
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) {
+      setFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileSelect = (e) => {
     setFile(e.target.files[0]);
   };
 
   const handleContinue = () => {
     if (selectedTemplate && file) {
+      console.log("Valid inputs", selectedTemplate, file);
       onContinue({ template: selectedTemplate, file });
+      setFile(null);
+      setSelectedTemplate("");
     }
   };
 
+  const currentTemplate = importTemplates.find((t) => t.id === selectedTemplate) || "";
+
   return (
-    <Box p={3}>
-      <Typography variant="h5" mb={3}>
-        Start Import
-      </Typography>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        Import Transactions
+        <Tooltip title="Upload a bank export to import multiple transactions." arrow>
+          <IconButton size="small" sx={{ ml: 1 }}>
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </DialogTitle>
 
-      <Stack spacing={3} maxWidth={400}>
-        <FormControl fullWidth>
-          <InputLabel>Template</InputLabel>
-          <Select
-            value={selectedTemplate}
-            onChange={(e) => setSelectedTemplate(e.target.value)}
+      <DialogContent>
+        <Stack spacing={3}>
+          <AppSelect
             label="Template"
+            value={currentTemplate}
+            onChange={(val) => setSelectedTemplate(val?.id)}
+            options={importTemplates}
+            getOptionLabel={(opt) => opt.name}
+            getOptionValue={(opt) => opt.id}
+          />
+
+          <Box
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById("fileInput").click()}
           >
-            {importTemplates.map((template) => (
-              <MenuItem key={template} value={template}>
-                {template}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            <DropArea isDragging={isDragging}>
+              <Typography>
+                {file ? `Selected file: ${file.name}` : "Drag & drop or click to select a file"}
+              </Typography>
+              <input
+                id="fileInput"
+                type="file"
+                accept=".csv,.xlsx"
+                onChange={handleFileSelect}
+                style={{ display: "none" }}
+              />
+            </DropArea>
+          </Box>
+        </Stack>
+      </DialogContent>
 
-        <TextField
-          type="file"
-          inputProps={{ accept: ".csv,.xlsx" }}
-          onChange={handleFileChange}
-          fullWidth
-        />
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
 
-        <Button
-          variant="contained"
-          onClick={handleContinue}
-          disabled={!selectedTemplate || !file}
+        <Tooltip
+          title={!selectedTemplate || !file
+            ? "Please select a template and upload a file to continue."
+            : ""}
+          arrow
         >
-          Continue
-        </Button>
-      </Stack>
-    </Box>
+          <span>
+            <Button
+              variant="contained"
+              onClick={handleContinue}
+              disabled={!selectedTemplate || !file}
+              sx={{
+                color: !selectedTemplate || !file ? "#666" : "#fff",
+              }}
+            >
+              Continue
+            </Button>
+          </span>
+        </Tooltip>
+      </DialogActions>
+    </Dialog>
   );
 };
 
-export default ImportStart;
+export default ImportModal;
