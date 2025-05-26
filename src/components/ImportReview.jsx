@@ -19,6 +19,7 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
+import { WarningAmberRounded } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import AppSelect from "../components/common/AppSelect";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -33,6 +34,7 @@ const ImportReview = () => {
   const [categories, setCategories] = useState([]);
   const [currencies, setCurrencies] = useState([]);
   const [deleteIndex, setDeleteIndex] = useState(null);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,9 +64,26 @@ const ImportReview = () => {
     setTransactions(updated);
   };
 
-  const handleDelete = () => {
-    setTransactions(transactions.filter((_, idx) => idx !== deleteIndex));
-    setDeleteIndex(null);
+  const handleDelete = async () => {
+    try {
+      const transactionId = transactions[deleteIndex].id;
+      await apiClient.delete(`/import/transaction/${transactionId}`);
+      const updated = [...transactions];
+      updated.splice(deleteIndex, 1);
+      setTransactions(updated);
+      setDeleteIndex(null);
+    } catch (err) {
+      console.error("Error deleting transaction:", err);
+    }
+  };
+
+  const handleCancelImport = async () => {
+    try {
+      await apiClient.delete(`/import/session/${sessionId}`);
+      navigate("/budget-tracker");
+    } catch (err) {
+      console.error("Error cancelling session:", err);
+    }
   };
 
   const isValid = useMemo(() => {
@@ -82,23 +101,23 @@ const ImportReview = () => {
     }
   };
 
-  if (!transactions.length) {
-    return (
-      <Box p={3}>
-        <Typography variant="h6">No data to review. Please start a new import.</Typography>
-        <Button onClick={() => navigate("/transactions")} sx={{ mt: 2 }}>
-          Back to Transactions
-        </Button>
-      </Box>
-    );
-  }
+  // if (!transactions.length) {
+  //   return (
+  //     <Box p={3}>
+  //       <Typography variant="h6">No data to review. Please start a new import.</Typography>
+  //       <Button onClick={() => navigate("/budget-tracker")} sx={{ mt: 2 }}>
+  //         Back to Transactions
+  //       </Button>
+  //     </Box>
+  //   );
+  // }
 
   return (
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5">Review Imported Transactions</Typography>
         <Stack direction="row" spacing={2}>
-          <Button variant="outlined" onClick={() => navigate("/transactions")}>Cancel</Button>
+          <Button variant="outlined" onClick={() => { setConfirmCancelOpen(true) }}>Cancel</Button>
           <Button
             variant="contained"
             color="primary"
@@ -206,6 +225,51 @@ const ImportReview = () => {
           <Button color="error" onClick={handleDelete}>Delete</Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog
+        open={confirmCancelOpen}
+        onClose={() => setConfirmCancelOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 2,
+            minWidth: 320,
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <WarningAmberRounded color="warning" />
+          Confirm Cancel
+        </DialogTitle>
+
+        <Box px={3} py={4}>
+          <Typography variant="body1">
+            Are you sure you want to cancel this import? All imported data will be lost.
+          </Typography>
+        </Box>
+
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => setConfirmCancelOpen(false)}
+          >
+            No, Go Back
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={async () => {
+              setConfirmCancelOpen(false);
+              await handleCancelImport();
+            }}
+          >
+            Yes, Cancel Import
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
     </Box>
   );
 };

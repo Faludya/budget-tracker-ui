@@ -10,7 +10,9 @@ import {
   Box,
   Tooltip,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
+
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { styled } from "@mui/system";
 import AppSelect from "../common/AppSelect"; // adjust path as needed
@@ -36,6 +38,7 @@ const ImportModal = ({ open, onClose, onContinue }) => {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -47,14 +50,20 @@ const ImportModal = ({ open, onClose, onContinue }) => {
 
   const handleFileSelect = (e) => {
     setFile(e.target.files[0]);
+  
   };
-
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedTemplate && file) {
-      console.log("Valid inputs", selectedTemplate, file);
-      onContinue({ template: selectedTemplate, file });
-      setFile(null);
-      setSelectedTemplate("");
+      setLoading(true);
+      try {
+        await onContinue({ template: selectedTemplate, file });
+        setFile(null);
+        setSelectedTemplate("");
+      } catch (error) {
+        console.error("Import failed:", error);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -109,26 +118,29 @@ const ImportModal = ({ open, onClose, onContinue }) => {
 
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-
-        <Tooltip
-          title={!selectedTemplate || !file
-            ? "Please select a template and upload a file to continue."
-            : ""}
-          arrow
-        >
-          <span>
-            <Button
-              variant="contained"
-              onClick={handleContinue}
-              disabled={!selectedTemplate || !file}
-              sx={{
-                color: !selectedTemplate || !file ? "#666" : "#fff",
-              }}
-            >
-              Continue
-            </Button>
-          </span>
-        </Tooltip>
+        {loading ? (
+          <CircularProgress size={24} sx={{ marginLeft: 2 }} />
+        ) : (
+          <Tooltip
+            title={!selectedTemplate || !file
+              ? "Please select a template and upload a file to continue."
+              : ""}
+            arrow
+          >
+            <span>
+              <Button
+                variant="contained"
+                onClick={handleContinue}
+                disabled={!selectedTemplate || !file}
+                sx={{
+                  color: !selectedTemplate || !file ? "#666" : "#fff",
+                }}
+              >
+                Continue
+              </Button>
+            </span>
+          </Tooltip>
+        )}
       </DialogActions>
     </Dialog>
   );
