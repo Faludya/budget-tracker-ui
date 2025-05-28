@@ -3,6 +3,7 @@ import {
   Box,
   Typography,
   Button,
+  Stack,
   Paper,
   Table,
   TableBody,
@@ -18,6 +19,8 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { WarningAmberRounded } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -37,7 +40,9 @@ const ImportReview = () => {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [importSnackbarOpen, setImportSnackbarOpen] = useState(false);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -90,20 +95,6 @@ const ImportReview = () => {
     }
   };
 
-  const handleSaveDraft = async () => {
-    try {
-      setSaving(true);
-      const updatePromises = transactions.map((tx) =>
-        apiClient.put(`/import/session/${sessionId}/transaction/${tx.id}`, tx)
-      );
-      await Promise.all(updatePromises);
-    } catch (error) {
-      console.error("Failed to save draft:", error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const isValid = useMemo(() => {
     return (
       transactions.length > 0 &&
@@ -119,149 +110,160 @@ const ImportReview = () => {
     );
   }, [transactions]);
 
-  const handleCompleteImport = async () => {
+  const handleSaveDraft = async () => {
+    setSaving(true);
     try {
-      await apiClient.post(`/import/session/${sessionId}/complete`);
-      navigate("/transactions");
+      await apiClient.put(`/import/session/${sessionId}`, transactions );
+      setSnackbarOpen(true);
     } catch (error) {
-      console.error("Error completing import:", error);
+      console.error("Error saving draft:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
-        <CircularProgress />
-      </Box>
-    );
+
+  const handleCompleteImport = async () => {
+    setCompleting(true);
+    try {
+      await apiClient.put(`/import/session/${sessionId}`, transactions);
+      await apiClient.post(`/import/session/${sessionId}/complete`);
+
+      setImportSnackbarOpen(true);
+      setTimeout(() => navigate("/budget-tracker"), 1500); // Delay for user to see the message
+    } catch (error) {
+      console.error("Error completing import:", error);
+    }
+    finally {
+    setCompleting(false);
   }
+  };
+
+  const getFieldError = (value) => !value || (typeof value === "string" && value.trim() === "");
 
   return (
-    <Box p={3} pb={12}>
-      <Typography variant="h5" mb={3}>Review Imported Transactions</Typography>
-
-      <Paper>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ minWidth: 130 }}>Date</TableCell>
-              <TableCell sx={{ minWidth: 240 }}>Description</TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Amount</TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Currency</TableCell>
-              <TableCell sx={{ minWidth: 200 }}>Category</TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {transactions.map((tx, index) => {
-              const errors = {
-                date: !tx.date,
-                description: !tx.description,
-                amount: !tx.amount || isNaN(parseFloat(tx.amount)),
-                currency: !tx.currency,
-                category: !tx.category,
-              };
-
-              return (
-                <TableRow key={index}>
-                  <TableCell>
-                    <TextField
-                      type="date"
-                      fullWidth
-                      value={tx.date ? tx.date.split("T")[0] : ""}
-                      onChange={(e) => handleChange(index, "date", e.target.value)}
-                      sx={errors.date ? { border: '1px solid red', borderRadius: 1 } : {}}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      fullWidth
-                      value={tx.description}
-                      onChange={(e) => handleChange(index, "description", e.target.value)}
-                      sx={errors.description ? { border: '1px solid red', borderRadius: 1 } : {}}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      type="number"
-                      fullWidth
-                      value={tx.amount}
-                      onChange={(e) => handleChange(index, "amount", e.target.value)}
-                      sx={errors.amount ? { border: '1px solid red', borderRadius: 1 } : {}}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      fullWidth
-                      value={tx.currency || ""}
-                      onChange={(e) => handleChange(index, "currency", e.target.value)}
-                     sx={errors.currency ? { border: '1px solid red', borderRadius: 1 } : {}}
-                    >
-                      {currencies.map((cur) => (
-                        <MenuItem key={cur.id} value={cur.code}>{cur.code}</MenuItem>
-                      ))}
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <AppSelect
-                      options={categories}
-                      value={categories.find((c) => c.name === tx.category) || ""}
-                      onChange={(val) => handleChange(index, "category", val.name)}
-                      getOptionLabel={(opt) => opt.name}
-                      getOptionValue={(opt) => opt.name}
-                      sx={errors.category ? { border: "1px solid red", borderRadius: 1 } : {}}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title="Delete Transaction">
-                      <IconButton onClick={() => setDeleteIndex(index)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </Paper>
-
-      <Box
-        position="fixed"
-        bottom={0}
-        left={0}
-        width="100%"
-        bgcolor="white"
-        borderTop="1px solid #ddd"
-        py={2}
-        px={3}
-        display="flex"
-        justifyContent="flex-end"
-        gap={2}
-        zIndex={1300}
-      >
-        <Button variant="outlined" onClick={() => setConfirmCancelOpen(true)}>Cancel</Button>
-        <Button variant="outlined" onClick={handleSaveDraft} disabled={saving}>
-          {saving ? <CircularProgress size={20} /> : "Save Draft"}
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleCompleteImport}
-          disabled={!isValid}
-          sx={{
-            "&.Mui-disabled": {
-              backgroundColor: "#e0e0e0",
-              color: "#9e9e9e",
-              boxShadow: "none",
-              cursor: "not-allowed",
-            },
-          }}
-        >
-          Complete Import
-        </Button>
-
+    <Box p={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5">Review Imported Transactions</Typography>
       </Box>
+
+      {loading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          <Paper sx={{ overflowX: "auto" }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ minWidth: 130 }}>Date</TableCell>
+                  <TableCell sx={{ minWidth: 240 }}>Description</TableCell>
+                  <TableCell sx={{ minWidth: 100 }}>Amount</TableCell>
+                  <TableCell sx={{ minWidth: 100 }}>Currency</TableCell>
+                  <TableCell sx={{ minWidth: 200 }}>Category</TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {transactions.map((tx, index) => {
+                  return (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <TextField
+                          type="date"
+                          fullWidth
+                          value={tx.date ? tx.date.split("T")[0] : ""}
+                          onChange={(e) => handleChange(index, "date", e.target.value)}
+                          sx={getFieldError(tx.date) ? { border: "1px solid red", borderRadius: 1 } : {}}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          fullWidth
+                          value={tx.description}
+                          onChange={(e) => handleChange(index, "description", e.target.value)}
+                          sx={getFieldError(tx.description) ? { border: "1px solid red", borderRadius: 1 } : {}}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          type="number"
+                          fullWidth
+                          value={tx.amount}
+                          onChange={(e) => handleChange(index, "amount", e.target.value)}
+                          sx={getFieldError(tx.amount) ? { border: "1px solid red", borderRadius: 1 } : {}}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          fullWidth
+                          value={tx.currency || ""}
+                          onChange={(e) => handleChange(index, "currency", e.target.value)}
+                          sx={getFieldError(tx.currency) ? { border: "1px solid red", borderRadius: 1 } : {}}
+                        >
+                          {currencies.map((cur) => (
+                            <MenuItem key={cur.id} value={cur.code}>{cur.code}</MenuItem>
+                          ))}
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <AppSelect
+                          options={categories}
+                          value={categories.find((c) => c.name === tx.category) || ""}
+                          onChange={(val) => handleChange(index, "category", val.name)}
+                          getOptionLabel={(opt) => opt.name}
+                          getOptionValue={(opt) => opt.name}
+                          sx={getFieldError(tx.category) ? { border: '1px solid red', borderRadius: 1 } : {}}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="Delete Transaction">
+                          <IconButton onClick={() => setDeleteIndex(index)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Paper>
+
+          <Paper sx={{ position: "sticky", bottom: 0, zIndex: 2, mt: 2, borderTop: "1px solid #ccc", background: "#fff", p: 2 }}>
+            <Stack direction="row" spacing={2} justifyContent="flex-end">
+              <Button variant="outlined" onClick={() => setConfirmCancelOpen(true)}>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                onClick={handleSaveDraft}
+                  disabled={saving}
+                >
+                  {saving ? <CircularProgress size={20} sx={{ color: "white" }} /> : "Save Draft"}
+                </Button>
+
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleCompleteImport}
+                  disabled={!isValid}
+                  sx={{
+                    "&.Mui-disabled": {
+                      backgroundColor: "#e0e0e0",
+                      color: "#9e9e9e",
+                      boxShadow: "none",
+                      cursor: "not-allowed",
+                    },
+                  }}
+                >
+                  {completing ? <CircularProgress size={20} sx={{ color: "white" }} /> : "Complete Import"}
+                </Button>
+              </Stack>
+            </Paper>
+          </>
+      )}
 
       <Dialog
         open={deleteIndex !== null}
@@ -317,6 +319,29 @@ const ImportReview = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbarOpen(false)} severity="success" >
+          Draft saved successfully!
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={importSnackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setImportSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setImportSnackbarOpen(false)} severity="success">
+          Import completed successfully!
+        </Alert>
+      </Snackbar>
+
     </Box>
   );
 };
