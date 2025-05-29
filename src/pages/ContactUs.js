@@ -2,43 +2,32 @@ import React, { useState } from "react";
 import {
   Box,
   Container,
-  Grid,
   Typography,
-  TextField,
   Button,
   MenuItem,
   Paper,
-  Snackbar,
-  Alert,
   CircularProgress,
+  IconButton,
   Card,
   CardContent,
-  IconButton,
+  Tooltip,
+  Stack,
+  Modal,
 } from "@mui/material";
 import { styled } from "@mui/system";
 import { FiPhone, FiMail, FiClock, FiMapPin } from "react-icons/fi";
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from "react-icons/fa";
 import { BsChat } from "react-icons/bs";
+import Confetti from "react-confetti";
+import Typewriter from "typewriter-effect";
 
-const StyledContactForm = styled(Paper)({
-  padding: "2rem",
-  borderRadius: "12px",
-  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-});
+import AppInput from "../components/common/AppInput";
+import AppMultilineInput from "../components/common/AppAutoTextarea";
 
-const InfoCard = styled(Card)({
-  height: "100%",
+const StyledCard = styled(Card)({
   transition: "transform 0.2s",
   "&:hover": {
     transform: "translateY(-4px)",
-  },
-});
-
-const SocialButton = styled(IconButton)({
-  margin: "0 8px",
-  color: "#1976d2",
-  "&:hover": {
-    backgroundColor: "rgba(25, 118, 210, 0.1)",
   },
 });
 
@@ -53,8 +42,9 @@ const ContactUs = () => {
 
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [confetti, setConfetti] = useState(false);
   const [errors, setErrors] = useState({});
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
 
   const subjects = ["General Inquiry", "Technical Support", "Business Proposal", "Feedback", "Other"];
 
@@ -84,141 +74,215 @@ const ContactUs = () => {
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated API call
-      setSnackbar({ open: true, message: "Message sent successfully!", severity: "success" });
-      setFormData(initialFormData);
+      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulated API call
+
+      setConfetti(true);
+      setSuccessModalOpen(true); // ✅ Open modal
+      setFormData(initialFormData); // ✅ Clear form
+
+      setTimeout(() => setConfetti(false), 8000); // ✅ Longer confetti
     } catch (error) {
-      setSnackbar({ open: true, message: "Failed to send message. Please try again.", severity: "error" });
+      console.error("Submission failed:", error);
+      // Optionally handle error UI
     } finally {
       setLoading(false);
     }
   };
 
+
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Typography variant="h2" align="center" gutterBottom>
-        Contact Us
+    <Container maxWidth="lg" sx={{ py: 8, position: "relative" }}>
+      {confetti && <Confetti numberOfPieces={300} recycle={false} />}
+
+      <Typography variant="h3" align="center" gutterBottom sx={{ minHeight: 60 }}>
+        <Typewriter
+          options={{
+            strings: ["Say Hello 👋", "Got Feedback? 💡", "Let’s Talk 🧠"],
+            autoStart: true,
+            loop: true,
+            pauseFor: 2500,
+            delay: 50,
+            deleteSpeed: 20,
+          }}
+        />
       </Typography>
-      <Grid container spacing={4}>
-        {/* Contact Form */}
-        <Grid item xs={12} md={6}>
-          <StyledContactForm elevation={3}>
-            <form onSubmit={handleSubmit}>
-              <Grid container spacing={3}>
-                {["fullName", "email", "phone"].map((field, index) => (
-                  <Grid item xs={12} key={index}>
-                    <TextField
-                      fullWidth
-                      label={field === "phone" ? "Phone (optional)" : field.replace(/([A-Z])/g, " $1").trim()}
-                      name={field}
-                      type={field === "email" ? "email" : "text"}
-                      value={formData[field]}
-                      onChange={handleChange}
-                      error={!!errors[field]}
-                      helperText={errors[field]}
-                      required={field !== "phone"}
-                    />
-                  </Grid>
+
+      <Box display={{ xs: "block", md: "flex" }} gap={6} mt={4}>
+        {/* Form Section */}
+        <Paper sx={{ p: 4, borderRadius: 3, flex: 1 }}>
+          <form onSubmit={handleSubmit}>
+            <Stack spacing={3}>
+              <AppInput
+                label="Full name"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                error={!!errors.fullName}
+                helperText={errors.fullName}
+                required
+              />
+              <AppInput
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={!!errors.email}
+                helperText={errors.email}
+                required
+              />
+              <AppInput
+                label="Phone (optional)"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+              />
+              <AppInput
+                label="Subject"
+                name="subject"
+                select
+                value={formData.subject}
+                onChange={handleChange}
+                error={!!errors.subject}
+                helperText={errors.subject}
+                required
+              >
+                {subjects.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
                 ))}
+              </AppInput>
+              <AppMultilineInput
+                label="Message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                error={!!errors.message}
+                helperText={errors.message}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                size="large"
+                disabled={loading}
+                sx={{
+                  fontWeight: "bold",
+                  textTransform: "none",
+                  background: "linear-gradient(to right, #000428, #004e92)",
+                  color: "#fff",
+                  "&:hover": {
+                    background: "linear-gradient(to right, #004e92, #000428)",
+                  },
+                }}
+              >
+                {loading ? <CircularProgress size={24} /> : "Send 🚀"}
+              </Button>
+            </Stack>
+          </form>
+        </Paper>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    select
-                    label="Subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    error={!!errors.subject}
-                    helperText={errors.subject}
-                    required
-                  >
-                    {subjects.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {option}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
+        {/* Info Section */}
+        <Box flex={1} display="flex" flexDirection="column" gap={3}>
+          {[
+            { icon: FiMapPin, text: "123 Business Ave, NY 10001, USA" },
+            { icon: FiPhone, text: "+1 (555) 123-4567" },
+            { icon: FiMail, text: "contact@company.com" },
+            { icon: FiClock, text: "Mon-Fri: 9 AM - 6 PM, Sat: 10 AM - 4 PM" },
+          ].map((info, i) => (
+            <StyledCard key={i}>
+              <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <info.icon size={22} />
+                <Typography>{info.text}</Typography>
+              </CardContent>
+            </StyledCard>
+          ))}
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={4}
-                    label="Message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    error={!!errors.message}
-                    helperText={errors.message}
-                    required
-                  />
-                </Grid>
+          <StyledCard>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Follow Us
+              </Typography>
+              <Box display="flex" justifyContent="center">
+                {[FaFacebook, FaTwitter, FaLinkedin, FaInstagram].map((Icon, i) => (
+                  <IconButton key={i} color="primary">
+                    <Icon />
+                  </IconButton>
+                ))}
+              </Box>
+            </CardContent>
+          </StyledCard>
 
-                <Grid item xs={12}>
-                  <Button fullWidth variant="contained" size="large" type="submit" disabled={loading}>
-                    {loading ? <CircularProgress size={24} /> : "Send Message"}
-                  </Button>
-                </Grid>
-              </Grid>
-            </form>
-          </StyledContactForm>
-        </Grid>
+          <StyledCard>
+            <CardContent>
+              <Box
+                component="iframe"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3023.937867290409!2d-74.00594168459207!3d40.712775779331944!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c25a316ff3bbcb%3A0xeca8f853d97c2d7a!2s123%20Business%20Ave%2C%20New%20York%2C%20NY%2010001%2C%20USA!5e0!3m2!1sen!2sus!4v1629380817664!5m2!1sen!2sus"
+                width="100%"
+                height="300"
+                style={{ border: 0, borderRadius: 8 }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
 
-        {/* Company Info */}
-        <Grid item xs={12} md={6}>
-          <Grid container spacing={3}>
-            {[
-              { icon: FiMapPin, text: "123 Business Ave, NY 10001, USA" },
-              { icon: FiPhone, text: "+1 (555) 123-4567" },
-              { icon: FiMail, text: "contact@company.com" },
-              { icon: FiClock, text: "Mon-Fri: 9 AM - 6 PM, Sat: 10 AM - 4 PM" },
-            ].map((info, index) => (
-              <Grid item xs={12} key={index}>
-                <InfoCard>
-                  <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <info.icon size={24} />
-                    <Typography>{info.text}</Typography>
-                  </CardContent>
-                </InfoCard>
-              </Grid>
-            ))}
-
-            {/* Social Media */}
-            <Grid item xs={12}>
-              <InfoCard>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Follow Us
-                  </Typography>
-                  <Box display="flex" justifyContent="center">
-                    {[FaFacebook, FaTwitter, FaLinkedin, FaInstagram].map((Icon, index) => (
-                      <SocialButton key={index}>
-                        <Icon />
-                      </SocialButton>
-                    ))}
-                  </Box>
-                </CardContent>
-              </InfoCard>
-            </Grid>
-          </Grid>
-        </Grid>
-      </Grid>
-
-      {/* Snackbar */}
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-        <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-
-      {/* Floating Chat Button */}
-      <Box sx={{ position: "fixed", bottom: 20, right: 20, zIndex: 1000 }}>
-        <IconButton sx={{ backgroundColor: "primary.main", color: "white", "&:hover": { backgroundColor: "primary.dark" } }}>
-          <BsChat size={24} />
-        </IconButton>
+            </CardContent>
+          </StyledCard>
+        </Box>
       </Box>
+
+      <Tooltip title="We read every message. Even the weird ones. 👵️ " arrow>
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            mt: 4,
+            textAlign: "center",
+            color: "text.secondary",
+            fontStyle: "italic",
+          }}
+        >
+          P.S. We use tech magic to handle your messages ✨
+        </Typography>
+      </Tooltip>
+
+      <Modal
+        open={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        aria-labelledby="success-modal-title"
+        aria-describedby="success-modal-description"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            textAlign: "center",
+            width: 300,
+          }}
+        >
+          <Typography id="success-modal-title" variant="h6" gutterBottom>
+            🎉 Message Sent!
+          </Typography>
+          <Typography id="success-modal-description" sx={{ mb: 2 }}>
+            Thanks for getting in touch — we’ll get back to you soon.
+          </Typography>
+          <Button
+            onClick={() => setSuccessModalOpen(false)}
+            variant="contained"
+            fullWidth
+          >
+            Close
+          </Button>
+        </Box>
+      </Modal>
+
     </Container>
   );
 };
