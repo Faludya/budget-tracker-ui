@@ -139,6 +139,10 @@ export default function Navbar() {
                   <Button component={Link} to="/categories" variant="text" color="info" size="small">
                     Category
                   </Button>
+                  <Button component={Link} to="/budget/setup" variant="text" color="info" size="small">
+                    Set Budget
+                  </Button>
+                  
                 </>
               )}
             </Box>
