@@ -1,140 +1,135 @@
+// 📁 BudgetTemplateSelection.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
-  Paper,
   Stack,
   Button,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
   CircularProgress,
-  Snackbar,
-  Alert,
 } from "@mui/material";
-import dayjs from "dayjs";
-import apiClient from "../api/axiosConfig";
 import { useNavigate } from "react-router-dom";
+import AppSelect from "../components/common/AppSelect";
+import AppInput from "../components/common/AppInput";
+import apiClient from "../api/axiosConfig";
+import BudgetBreakdown from "../components/budget-tracking/BudgetBreakdown";
+import AddCategoryLimit from "../components/budget-tracking/AddCategoryLimit";
 
 const BudgetTemplateSelection = () => {
-  const [templates, setTemplates] = useState([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const navigate = useNavigate();
 
-  const currentMonth = dayjs().month() + 1;
-  const currentYear = dayjs().year();
-  const userId = localStorage.getItem("userId");
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [monthlyIncome, setMonthlyIncome] = useState("");
+  const [appliedBudget, setAppliedBudget] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const res = await apiClient.get("/budget-templates");
-        setTemplates(res.data);
-      } catch (err) {
-        console.error("Error fetching templates:", err);
+        const response = await apiClient.get("/budget-templates");
+        setTemplates(response.data);
+      } catch (error) {
+        console.error("Failed to fetch budget templates:", error);
       } finally {
         setLoading(false);
       }
     };
+
     fetchTemplates();
   }, []);
 
-  const handleSave = async () => {
-    if (!selectedId) return;
-    setSaving(true);
+  useEffect(() => {
+    if (selectedTemplateId) {
+      const found = templates.find((t) => t.id === selectedTemplateId);
+      setSelectedTemplate(found || null);
+    } else {
+      setSelectedTemplate(null);
+    }
+  }, [selectedTemplateId, templates]);
+
+  const handleApplyTemplate = async () => {
+    if (!selectedTemplateId || !monthlyIncome) {
+      alert("Please select a template and enter your income.");
+      return;
+    }
+
     try {
-      const template = templates.find((t) => t.id === selectedId);
+      setLoading(true);
+      const now = new Date();
+      const response = await apiClient.post("/userbudgets/generate", {
+        userId: localStorage.getItem("userId"),
+        templateId: selectedTemplateId,
+        income: parseFloat(monthlyIncome),
+        month: now.getMonth() + 1,
+        year: now.getFullYear(),
+      });
 
-      const newBudget = {
-        userId,
-        month: `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`,
-        budgetItems: template.items.map((item) => ({
-          categoryType: item.categoryType,
-          percentage: item.percentage,
-        })),
-      };
-
-      await apiClient.post("/user-budgets", newBudget);
-      setSnackbarOpen(true);
-    } catch (err) {
-      console.error("Error saving budget:", err);
+      setAppliedBudget(response.data);
+    } catch (error) {
+      console.error("Failed to apply budget template:", error);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
+  const breakdownItems = selectedTemplate?.items?.map((item) => {
+    const amount = ((item.percentage / 100) * parseFloat(monthlyIncome || "0")).toFixed(2);
+    return {
+      ...item,
+      amount,
+    };
+  });
+
   return (
-    <Box p={3}>
-      <Typography variant="h5" mb={2}>Choose a Budget Template</Typography>
+    <Box p={4} maxWidth={700} mx="auto">
+      <Typography variant="h5" mb={3}>Choose a Budget Template</Typography>
 
       {loading ? (
         <CircularProgress />
       ) : (
         <Stack spacing={3}>
-          <FormControl fullWidth>
-            <InputLabel>Select Template</InputLabel>
-            <Select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              label="Select Template"
-            >
-              {templates.map((template) => (
-                <MenuItem key={template.id} value={template.id}>
-                  {template.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <AppSelect
+            label="Select Template"
+            value={templates.find((t) => t.id === selectedTemplateId) || null}
+            onChange={(val) => setSelectedTemplateId(val?.id || null)}
+            options={templates}
+            getOptionLabel={(opt) => opt.name}
+            getOptionValue={(opt) => opt?.id ?? ""}
+          />
 
-          {selectedId && (
-            <Paper elevation={2} sx={{ p: 2 }}>
-              <Typography variant="h6">Breakdown</Typography>
-              {templates
-                .find((t) => t.id === selectedId)
-                ?.items.map((item, idx) => (
-                  <Typography key={idx}>
-                    {item.categoryType}: {item.percentage}%
-                  </Typography>
-                ))}
-            </Paper>
+          <AppInput
+            label="Enter Monthly Income"
+            type="number"
+            value={monthlyIncome}
+            onChange={(e) => setMonthlyIncome(e.target.value)}
+          />
+
+          {breakdownItems?.length > 0 && !appliedBudget && (
+            <BudgetBreakdown items={breakdownItems} currencySymbol="LEI" />
           )}
 
           <Stack direction="row" spacing={2}>
             <Button variant="outlined" onClick={() => navigate("/budget-tracker")}>Cancel</Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSave}
-              disabled={!selectedId || saving}
-              sx={{
-                "&.Mui-disabled": {
-                  backgroundColor: "#e0e0e0",
-                  color: "#9e9e9e",
-                  boxShadow: "none",
-                  cursor: "not-allowed",
-                },
-              }}
-            >
-              {saving ? <CircularProgress size={20} sx={{ color: "white" }} /> : "Apply Template"}
+            <Button variant="contained" onClick={handleApplyTemplate} disabled={loading}>
+              {loading ? <CircularProgress size={20} /> : "Apply Template"}
             </Button>
           </Stack>
+
+          {appliedBudget && (
+            <>
+              <BudgetBreakdown
+                items={appliedBudget.budgetItems.map((item) => ({
+                  categoryType: item.categoryType,
+                  limit: item.limit,
+                }))}
+                currencySymbol="LEI"
+              />
+              <AddCategoryLimit userId={appliedBudget.userId} month={new Date(appliedBudget.month)} />
+            </>
+          )}
         </Stack>
       )}
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbarOpen(false)} severity="success">
-          Budget created successfully!
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
