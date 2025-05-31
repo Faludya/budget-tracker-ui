@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Box, Stack, Typography, Button } from "@mui/material";
+import { Box, Stack, Typography, Button, Snackbar, Alert } from "@mui/material";
 import AppSelect from "../common/AppSelect";
 import AppInput from "../common/AppInput";
 import apiClient from "../../api/axiosConfig";
 
-const AddCategoryLimit = ({ userId, month }) => {
+const AddCategoryLimit = ({ userId, month, onBudgetUpdate }) => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [manualLimit, setManualLimit] = useState("");
+  const [successOpen, setSuccessOpen] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -30,9 +31,13 @@ const AddCategoryLimit = ({ userId, month }) => {
         categoryId: selectedCategory.id,
         limit: parseFloat(manualLimit),
       });
-      alert("Limit saved!");
+
+      const response = await apiClient.get(`/userbudgets/${userId}/${month.getMonth() + 1}/${month.getFullYear()}`);
+      if (onBudgetUpdate) onBudgetUpdate(response.data);
+
       setManualLimit("");
       setSelectedCategory(null);
+      setSuccessOpen(true);
     } catch (err) {
       console.error("Error saving limit", err);
       alert("Failed to save limit.");
@@ -52,6 +57,7 @@ const AddCategoryLimit = ({ userId, month }) => {
           options={categories}
           getOptionLabel={(opt) => opt.name}
           getOptionValue={(opt) => opt.id}
+          groupBy={(opt) => opt.categoryType || "Ungrouped"}
         />
         <AppInput
           label="Limit"
@@ -67,6 +73,17 @@ const AddCategoryLimit = ({ userId, month }) => {
           Save Limit
         </Button>
       </Stack>
+
+      <Snackbar
+        open={successOpen}
+        autoHideDuration={3000}
+        onClose={() => setSuccessOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setSuccessOpen(false)} severity="success" sx={{ width: "100%" }}>
+          Limit saved successfully!
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
