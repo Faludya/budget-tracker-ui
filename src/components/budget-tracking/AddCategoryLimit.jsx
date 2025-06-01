@@ -7,6 +7,12 @@ import {
     Button,
     Menu,
     MenuItem,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogTitle,
+    Snackbar,
+    Alert,
 } from "@mui/material";
 import AppSelect from "../common/AppSelect";
 import AppInput from "../common/AppInput";
@@ -21,6 +27,20 @@ const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selecte
     const [group, setGroup] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
     const [selectedItemId, setSelectedItemId] = useState(null);
+    const [editItem, setEditItem] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [deleteItem, setDeleteItem] = useState(null);
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState("");
+    const [snackbarSeverity, setSnackbarSeverity] = useState("success"); 
+    const showSnackbar = (message, severity = "success") => {
+        setSnackbarMessage(message);
+        setSnackbarSeverity(severity);
+        setSnackbarOpen(true);
+    };
+
+
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -55,36 +75,53 @@ const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selecte
     }, [manualLimits, templateGroups]);
 
     const handleSave = async () => {
-        if (!categoryId || !limit) return;
+        if (!categoryId || !limit || !group || !userId) return;
+
+        const payload = {
+            id: isEditing ? editItem?.id : undefined,
+            userId,
+            categoryId,
+            limit: parseFloat(limit),
+            parentCategoryType: group?.value || group,
+            month: month.getMonth() + 1,
+            year: month.getFullYear(),
+        };
 
         try {
-            await apiClient.post("/userbudgets/category-limit", {
-                userId,
-                month: month.getMonth() + 1,
-                year: month.getFullYear(),
-                categoryId,
-                limit: parseFloat(limit),
-                parentCategoryType: group?.value || group,
-            });
+            setSaving(true);
 
-            const refreshed = await apiClient.get(`/userbudgets/${userId}/${month.getMonth() + 1}/${month.getFullYear()}`);
+            await apiClient.post(`/userbudgets/category-limit`, payload);
+            showSnackbar(isEditing ? "Limit updated!" : "Limit saved!");
+
+            const refreshed = await apiClient.get(
+                `/userbudgets/${userId}/${month.getMonth() + 1}/${month.getFullYear()}`
+            );
             onBudgetUpdate(refreshed.data);
 
             setCategoryId(null);
             setLimit("");
             setGroup(null);
+            setEditItem(null);
+            setIsEditing(false);
         } catch (err) {
-            console.error("Failed to save category limit", err);
+            showSnackbar("Failed to save category limit", "error");
+        } finally {
+            setSaving(false);
         }
     };
 
-    const handleDelete = async (itemId) => {
+    const handleDelete = async () => {
+        if (!deleteItem) return;
+
         try {
-            await apiClient.delete(`/userbudgets/category-limit/${itemId}`);
+            await apiClient.delete(`/userbudgets/category-limit/${deleteItem.id}`);
+            showSnackbar("Category limit deleted!");
             const refreshed = await apiClient.get(`/userbudgets/${userId}/${month.getMonth() + 1}/${month.getFullYear()}`);
             onBudgetUpdate(refreshed.data);
         } catch (err) {
-            console.error("Failed to delete limit", err);
+            showSnackbar("Failed to delete limit", "error");
+        } finally {
+            setDeleteItem(null);
         }
     };
 
@@ -137,8 +174,14 @@ const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selecte
                 </Box>
 
                 <Box alignSelf={{ xs: "stretch", md: "flex-end" }}>
-                    <Button variant="contained" onClick={handleSave} sx={{ height: "40px", textTransform: "none" }}>
-                        Save
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleSave}
+                        disabled={saving}
+                        startIcon={saving ? <CircularProgress size={20} color="inherit" /> : null}
+                    >
+                        {saving ? "Saving..." : isEditing ? "Update" : "Save"}
                     </Button>
                 </Box>
             </Stack>
@@ -168,7 +211,6 @@ const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selecte
                                             </IconButton>
                                         </li>
                                     ))}
-
                             </ul>
                         </Box>
                     );
@@ -177,18 +219,58 @@ const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selecte
 
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
                 <MenuItem onClick={() => {
-                    console.log("Edit", selectedItemId);
+                    const item = manualLimits.find(i => i.id === selectedItemId);
+                    if (item) {
+                        setCategoryId(item.categoryId);
+                        setLimit(item.limit);
+                        setGroup({ label: item.categoryType, value: item.categoryType });
+                        setEditItem(item);
+                        setIsEditing(true);
+                    }
                     handleMenuClose();
                 }}>
                     <Edit fontSize="small" sx={{ mr: 1 }} /> Edit
                 </MenuItem>
+
                 <MenuItem onClick={() => {
-                    handleDelete(selectedItemId);
+                    const item = manualLimits.find(i => i.id === selectedItemId);
+                    if (item) {
+                        setDeleteItem(item);
+                    }
                     handleMenuClose();
                 }}>
                     <Delete fontSize="small" sx={{ mr: 1 }} /> Delete
                 </MenuItem>
             </Menu>
+
+            <Dialog
+                open={!!deleteItem}
+                onClose={() => setDeleteItem(null)}
+                PaperProps={{ sx: { maxWidth: 300 } }}
+            >
+                <DialogTitle>
+                    Delete {deleteItem?.category?.name || "this limit"}?
+                </DialogTitle>
+                <DialogActions>
+                    <Button onClick={() => setDeleteItem(null)}>Cancel</Button>
+                    <Button color="error" onClick={handleDelete}>Delete</Button>
+                </DialogActions>
+            </Dialog>
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={4000}
+                onClose={() => setSnackbarOpen(false)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbarOpen(false)}
+                    severity={snackbarSeverity}
+                    sx={{ width: '100%' }}
+                >
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
+
         </Box>
     );
 };

@@ -46,23 +46,21 @@ const BudgetTemplateSelection = () => {
         setMonthlyIncome(Number(estimatedIncome || 0).toFixed(0));
 
         const matchingTemplate = loadedTemplates.find((t) => {
-          return (
-            t.items.length ===
-              budget.budgetItems.filter(
-                (bi) => bi.categoryType !== "Uncategorized"
-              ).length &&
-            t.items.every((ti) =>
-              budget.budgetItems.some(
-                (ubi) => ubi.categoryType === ti.categoryType
-              )
-            )
-          );
+          const templateGroups = t.items.map((ti) => ti.categoryType).sort();
+
+          const budgetGroups = budget.budgetItems
+            .filter((bi) => bi.categoryId == null && bi.categoryType !== "Uncategorized")
+            .map((bi) => bi.categoryType)
+            .sort();
+
+          return JSON.stringify(templateGroups) === JSON.stringify(budgetGroups);
         });
 
         if (matchingTemplate) {
           setSelectedTemplateId(matchingTemplate.id);
           setSelectedTemplate(matchingTemplate);
         }
+
       } catch (err) {
         if (err.response?.status !== 404) {
           console.error("Error loading budget or templates", err);
@@ -75,10 +73,13 @@ const BudgetTemplateSelection = () => {
     init();
   }, [userId, currentMonth, currentYear]);
 
-  useEffect(() => {
-    const found = templates.find((t) => t.id === selectedTemplateId);
-    setSelectedTemplate(found || null);
-  }, [selectedTemplateId, templates]);
+useEffect(() => {
+  if (!templates.length || !selectedTemplateId) return;
+
+  const found = templates.find((t) => t.id === selectedTemplateId);
+  if (found) setSelectedTemplate(found);
+}, [selectedTemplateId, templates]);
+
 
   const handleApplyTemplate = async () => {
     if (!selectedTemplateId || !monthlyIncome) {
