@@ -17,7 +17,6 @@ import {
 import { styled } from "@mui/system";
 import { FiPhone, FiMail, FiClock, FiMapPin } from "react-icons/fi";
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from "react-icons/fa";
-import { BsChat } from "react-icons/bs";
 import Confetti from "react-confetti";
 import Typewriter from "typewriter-effect";
 

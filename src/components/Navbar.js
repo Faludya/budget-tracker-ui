@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { alpha, styled } from "@mui/material/styles";
 import {
   AppBar,
@@ -41,6 +41,23 @@ const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   padding: "8px 12px",
 }));
 
+const NavButton = ({ to, label, currentPath }) => (
+  <Button
+    component={Link}
+    to={to}
+    variant="text"
+    color={currentPath === to ? "primary" : "info"}
+    size="small"
+    sx={{
+      borderBottom: currentPath === to ? "2px solid" : "2px solid transparent",
+      borderRadius: 0,
+      fontWeight: currentPath === to ? 600 : 400,
+    }}
+  >
+    {label}
+  </Button>
+);
+
 export default function Navbar() {
   const [open, setOpen] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(
@@ -49,17 +66,15 @@ export default function Navbar() {
   const [currencies, setCurrencies] = React.useState([]);
   const { preferences, setPreferences } = useUserPreferences();
   const { fetchTransactions } = useTransactionContext();
-
   const navigate = useNavigate();
+  const location = useLocation();
   const [snackbar, setSnackbar] = React.useState({
     open: false,
     message: "",
     severity: "info",
   });
 
-  const toggleDrawer = (newOpen) => () => {
-    setOpen(newOpen);
-  };
+  const toggleDrawer = (newOpen) => () => setOpen(newOpen);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -69,10 +84,8 @@ export default function Navbar() {
     window.location.reload();
   };
 
-
   const handleCurrencyChange = async (currencyCode) => {
     const updated = { ...preferences, preferredCurrency: currencyCode };
-
     try {
       await apiClient.put("/userpreferences", updated, {
         headers: { userId: localStorage.getItem("userId") },
@@ -85,8 +98,6 @@ export default function Navbar() {
     }
   };
 
-
-
   React.useEffect(() => {
     const fetchCurrencies = async () => {
       try {
@@ -96,7 +107,6 @@ export default function Navbar() {
         console.error("Failed to fetch currencies:", error);
       }
     };
-
     fetchCurrencies();
   }, []);
 
@@ -113,54 +123,33 @@ export default function Navbar() {
     >
       <Container maxWidth="lg">
         <StyledToolbar variant="dense" disableGutters>
-          {/* Left Section */}
           <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center" }}>
             <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
               <Sitemark />
             </Link>
-            <Box sx={{ display: { xs: "none", md: "flex" } }}>
-              <Button component={Link} to="/" variant="text" color="info" size="small">
-                Home
-              </Button>
-              <Button component={Link} to="/privacy" variant="text" color="info" size="small">
-                Privacy
-              </Button>
-              <Button component={Link} to="/contactus" variant="text" color="info" size="small">
-                Contact
-              </Button>
+            <Box sx={{ display: { xs: "none", md: "flex" }, ml: 2 }}>
+              <NavButton to="/" label="Home" currentPath={location.pathname} />
+              <NavButton to="/privacy" label="Privacy" currentPath={location.pathname} />
+              <NavButton to="/contactus" label="Contact" currentPath={location.pathname} />
               {isAuthenticated && (
                 <>
-                  <Button component={Link} to="/budget-tracker" variant="text" color="info" size="small">
-                    Budget Tracker
-                  </Button>
-                  <Button component={Link} to="/dashboard" variant="text" color="info" size="small">
-                    Dashboard
-                  </Button>
-                  <Button component={Link} to="/categories" variant="text" color="info" size="small">
-                    Category
-                  </Button>
-                  <Button component={Link} to="/budget/setup" variant="text" color="info" size="small">
-                    Set Budget
-                  </Button>
-                  
+                  <NavButton to="/budget-tracker" label="Budget Tracker" currentPath={location.pathname} />
+                  <NavButton to="/dashboard" label="Dashboard" currentPath={location.pathname} />
+                  <NavButton to="/categories" label="Categories" currentPath={location.pathname} />
+                  <NavButton to="/budget/setup" label="Set Budget" currentPath={location.pathname} />
                 </>
               )}
             </Box>
           </Box>
 
-          {/* Right Section */}
           <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
             {isAuthenticated && preferences && (
               <AppSelect
-                value={preferences?.preferredCurrency}
+                value={currencies.find((c) => c.code === preferences?.preferredCurrency) || null}
                 options={currencies}
                 getOptionLabel={(opt) => `${opt.symbol} - ${opt.code}`}
                 getOptionValue={(opt) => opt.code}
-                onChange={(selectedCurrency) => {
-                  if (selectedCurrency) {
-                    handleCurrencyChange(selectedCurrency.code);
-                  }
-                }}
+                onChange={(selectedCurrency) => selectedCurrency && handleCurrencyChange(selectedCurrency.code)}
                 icon={<MonetizationOn fontSize="small" />}
                 sx={{ minWidth: 150 }}
               />
@@ -183,7 +172,6 @@ export default function Navbar() {
             <ColorModeIconDropdown />
           </Box>
 
-          {/* Mobile Section */}
           <Box sx={{ display: { xs: "flex", md: "none" }, gap: 1 }}>
             <ColorModeIconDropdown size="medium" />
             <IconButton aria-label="Menu button" onClick={toggleDrawer(true)}>
@@ -247,7 +235,6 @@ export default function Navbar() {
         >
           <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
         </Snackbar>
-
       </Container>
     </AppBar>
   );

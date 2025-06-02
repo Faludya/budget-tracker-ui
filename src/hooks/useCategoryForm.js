@@ -9,46 +9,47 @@ const useCategoryForm = (setCategories) => {
   const [expanded, setExpanded] = useState({});
   const userId = localStorage.getItem("userId");
   
-  const groupCategories = (categories) => {
-    const map = new Map();
-    const roots = [];
+const groupCategories = (categories) => {
+  const parentCategories = categories.filter(c => !c.parentCategoryId);
+  const subCategoriesMap = {};
 
-    categories.forEach((cat) => {
-      cat.children = [];
-      map.set(cat.id, cat);
-    });
-
-    categories.forEach((cat) => {
-      if (cat.parentCategoryId) {
-        const parent = map.get(cat.parentCategoryId);
-        if (parent) parent.children.push(cat);
-      } else {
-        roots.push(cat);
+  categories.forEach((cat) => {
+    if (cat.parentCategoryId) {
+      if (!subCategoriesMap[cat.parentCategoryId]) {
+        subCategoriesMap[cat.parentCategoryId] = [];
       }
+      subCategoriesMap[cat.parentCategoryId].push(cat);
+    }
+  });
+
+  return parentCategories.map((parent) => ({
+    ...parent, // ⬅️ This keeps iconName, colorHex, etc.
+    children: subCategoriesMap[parent.id] || [],
+  }));
+};
+
+
+const fetchCategories = useCallback(async () => {
+  try {
+    const { data } = await apiClient.get("/categories", {
+      headers: { userId },
     });
 
-    return roots;
-  };
+    const grouped = groupCategories(data);
+    setCategories(data);
+    setGroupedCategories(grouped);
 
-  const fetchCategories = useCallback(async () => {
-    try {
-      const response = await apiClient.get("/categories", {
-        headers: { userId },
-      });
+    const defaultExpanded = {};
+    grouped.forEach((cat) => {
+      defaultExpanded[cat.id] = true;
+    });
 
-      const grouped = groupCategories(response.data);
-      setCategories(response.data);
-      setGroupedCategories(grouped);
+    setExpanded(defaultExpanded);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+  }
+}, [setCategories, userId]);
 
-      const expandedDefault = {};
-      grouped.forEach((cat) => {
-        expandedDefault[cat.id] = true;
-      });
-      setExpanded(expandedDefault);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-    }
-  }, [setCategories]); // only changes if setCategories reference changes
 
 
   useEffect(() => {
@@ -57,9 +58,15 @@ const useCategoryForm = (setCategories) => {
 
 
   const handleOpen = (data) => {
-    setFormData(data || { parentCategoryId: null });
+    setFormData({
+      ...data,
+      parentCategoryId: data?.parentCategoryId ?? null,
+      iconName: typeof data?.iconName === "string" ? data.iconName : "Category",
+      colorHex: data?.colorHex || "#000000",
+    });
     setOpen(true);
   };
+
 
   const handleClose = () => {
     setOpen(false);
@@ -131,8 +138,10 @@ const useCategoryForm = (setCategories) => {
     snackbar,
     setSnackbar,
     groupedCategories,
+    setGroupedCategories,
     expanded,
     setExpanded,
+    fetchCategories,
   };
 };
 

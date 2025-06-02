@@ -1,4 +1,3 @@
-// ✅ TransactionsTable.js (fixed Type select + React warnings)
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -8,6 +7,9 @@ import {
   Alert,
   Typography,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogActions,
 } from "@mui/material";
 import {
   Label,
@@ -33,6 +35,7 @@ import AppTable from "../../components/common/AppTable";
 import ExportMenu from "../../components/common/ExportMenu";
 import ImportModal from "./ImportModal";
 import { useUserPreferences } from "../../contexts/UserPreferencesContext";
+import { RadioGroup, FormControlLabel, Radio } from "@mui/material";
 
 const TransactionsTable = () => {
   const [categories, setCategories] = useState([]);
@@ -40,8 +43,9 @@ const TransactionsTable = () => {
   const [loading, setLoading] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
   const [activeImportSession, setActiveImportSession] = useState(null);
-  const FILTERS_STORAGE_KEY = "transactions-filters";
+  const [deleteId, setDeleteId] = useState(null);
 
+  const FILTERS_STORAGE_KEY = "transactions-filters";
   const defaultFilters = {
     fromDate: dayjs().startOf("month"),
     toDate: dayjs().endOf("month"),
@@ -49,8 +53,8 @@ const TransactionsTable = () => {
     amountMax: "",
     categoryId: "",
     type: "",
+    description: "",
   };
-
   const savedFilters = JSON.parse(localStorage.getItem(FILTERS_STORAGE_KEY));
   const [filters, setFilters] = useState(
     savedFilters
@@ -61,19 +65,14 @@ const TransactionsTable = () => {
       }
       : defaultFilters
   );
+
   const navigate = useNavigate();
-  
   const typeOptions = [
     { id: "Debit", name: "Debit" },
     { id: "Credit", name: "Credit" },
   ];
 
-  const {
-    transactions,
-    setTransactions,
-    fetchFilteredTransactions,
-  } = useTransactions();
-
+  const { transactions, setTransactions, fetchFilteredTransactions } = useTransactions();
   const {
     formData,
     open,
@@ -116,11 +115,7 @@ const TransactionsTable = () => {
   }, [preferences?.preferredCurrency, fetchData]);
 
   useEffect(() => {
-    if (
-      formData.categoryId &&
-      categories.length > 0 &&
-      !categories.find(cat => cat.id === formData.categoryId)
-    ) {
+    if (formData.categoryId && categories.length > 0 && !categories.find(cat => cat.id === formData.categoryId)) {
       handleChange({ target: { name: "categoryId", value: "" } });
     }
   }, [categories, formData.categoryId, handleChange]);
@@ -129,9 +124,7 @@ const TransactionsTable = () => {
     const fetchActiveImportSession = async () => {
       try {
         const userId = localStorage.getItem("userId");
-        const response = await apiClient.get(`/import/session/in-progress`, {
-          headers: { userId },
-        });
+        const response = await apiClient.get(`/import/session/in-progress`, { headers: { userId } });
         setActiveImportSession(response.data);
       } catch (err) {
         setActiveImportSession(null);
@@ -146,13 +139,26 @@ const TransactionsTable = () => {
     localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(updated));
   };
 
+  const resetFilters = () => {
+    localStorage.removeItem(FILTERS_STORAGE_KEY);
+    setFilters({ ...defaultFilters });
+  };
+
+  const handleConfirmDelete = async (id) => {
+    try {
+      await apiClient.delete(`/transactions/${id}`);
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      setSnackbar({ open: true, message: "Transaction deleted", severity: "success" });
+    } catch (err) {
+      console.error("Failed to delete transaction", err);
+      setSnackbar({ open: true, message: "Delete failed", severity: "error" });
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
   const columns = [
-    {
-      field: "date",
-      headerName: "Date",
-      flex: 1,
-      renderCell: ({ row }) => dayjs(row.date).format("DD/MM/YYYY"),
-    },
+    { field: "date", headerName: "Date", flex: 1, renderCell: ({ row }) => dayjs(row.date).format("DD/MM/YYYY") },
     { field: "type", headerName: "Type", flex: 1 },
     {
       field: "amount",
@@ -176,22 +182,10 @@ const TransactionsTable = () => {
       flex: 1,
       renderCell: ({ row }) => (
         <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            color="primary"
-            size="small"
-            onClick={() => handleOpen(row)}
-            sx={{ minWidth: 36, padding: "4px 8px" }}
-          >
+          <Button variant="outlined" color="primary" size="small" onClick={() => handleOpen(row)}>
             <Edit fontSize="small" />
           </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            onClick={() => handleDelete(row.id)}
-            sx={{ minWidth: 36, padding: "4px 8px" }}
-          >
+          <Button variant="outlined" color="error" size="small" onClick={() => setDeleteId(row.id)}>
             <Delete fontSize="small" />
           </Button>
         </Stack>
@@ -203,34 +197,114 @@ const TransactionsTable = () => {
     <Box p={3}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h5">Transactions</Typography>
-
         <Stack direction="row" spacing={2}>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpen(null)}
-          >
-            Add Transaction
+          <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen(null)}>Add Transaction</Button>
+          <Button variant="outlined" color="secondary" startIcon={<UploadFile />} onClick={() => activeImportSession?.id ? navigate(`/import/review?sessionId=${activeImportSession.id}`) : setImportOpen(true)}>
+            {activeImportSession?.id ? "Resume Import" : "Import"}
           </Button>
-
-          <Box display="flex" justifyContent="flex-end" mb={2}>
-            <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<UploadFile />}
-              onClick={() => {
-                if (activeImportSession?.id) {
-                  navigate(`/import/review?sessionId=${activeImportSession.id}`);
-                } else {
-                  setImportOpen(true);
-                }
-              }}
-            >
-              {activeImportSession?.id ? "Resume Import" : "Import"}
-            </Button>
-          </Box>
         </Stack>
       </Box>
+
+      <Stack spacing={2} mb={4}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          <AppDatePicker label="From" name="fromDate" value={filters.fromDate} onChange={(value) => updateFilters({ ...filters, fromDate: value })} icon={<CalendarMonth />} />
+          <AppDatePicker label="To" name="toDate" value={filters.toDate} onChange={(value) => updateFilters({ ...filters, toDate: value })} icon={<CalendarMonth />} />
+          <AppInput label="Min Amount" name="amountMin" value={filters.amountMin} onChange={(e) => updateFilters({ ...filters, amountMin: e.target.value })} type="number" icon={<AttachMoney />} />
+          <AppInput label="Max Amount" name="amountMax" value={filters.amountMax} onChange={(e) => updateFilters({ ...filters, amountMax: e.target.value })} type="number" icon={<AttachMoney />} />
+        </Stack>
+
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={2}
+          alignItems="flex-start"
+          justifyContent="space-between"
+          flexWrap="wrap"
+          useFlexGap
+        >
+          {/* Filters Section */}
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            {/* Description */}
+            <Box sx={{ minWidth: 220 }}>
+              <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Description
+              </Typography>
+              <AppInput
+                name="description"
+                value={filters.description}
+                onChange={(e) => updateFilters({ ...filters, description: e.target.value })}
+                icon={<Notes fontSize="small" />}
+                sx={{ width: "100%" }}
+              />
+            </Box>
+
+            {/* Category */}
+            <Box sx={{ minWidth: 250 }}>
+              <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Category
+              </Typography>
+              <AppSelect
+                value={categories.find((cat) => cat.id === filters.categoryId) || ""}
+                options={categories}
+                getOptionLabel={(opt) => opt.name}
+                onChange={(val) => updateFilters({ ...filters, categoryId: val?.id ?? "" })}
+                icon={<FolderOpen fontSize="small" />}
+                sx={{ width: "100%" }}
+              />
+            </Box>
+
+            {/* Type */}
+            <Box sx={{ minWidth: 250 }}>
+              <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Type
+              </Typography>
+              <AppSelect
+                value={typeOptions.find((opt) => opt.id === filters.type) || ""}
+                options={typeOptions}
+                getOptionLabel={(opt) => opt.name}
+                onChange={(val) => updateFilters({ ...filters, type: val?.id ?? "" })}
+                icon={<Label fontSize="small" />}
+                sx={{ width: "100%" }}
+              />
+            </Box>
+          </Stack>
+
+          {/* Buttons */}
+          <Stack direction="row" spacing={2} alignSelf={{ xs: "center", md: "flex-end" }}>
+            <ExportMenu filters={filters} />
+            <Button variant="outlined" onClick={resetFilters}>
+              Reset
+            </Button>
+          </Stack>
+        </Stack>
+
+      </Stack>
+
+      <AppTable rows={transactions} columns={columns} pageSize={5} autoHeight loading={loading} />
+
+      <AppModal open={open} title={formData.id ? "Edit Transaction" : "Add Transaction"} onClose={handleClose} onSave={handleSubmit}>
+        <Typography fontWeight={500} fontSize="0.9rem" mb={0.5}>Type</Typography>
+        <RadioGroup row name="type" value={formData.type} onChange={handleChange}>
+          <FormControlLabel value="Debit" control={<Radio />} label="Debit" />
+          <FormControlLabel value="Credit" control={<Radio />} label="Credit" />
+        </RadioGroup>
+        <AppInput label="Amount" name="amount" value={formData.amount} onChange={handleChange} type="number" icon={<AttachMoney />} />
+        <AppInput label="Description" name="description" value={formData.description} onChange={handleChange} icon={<Notes />} />
+        <AppDatePicker label="Date" name="date" value={formData.date} onChange={handleChange} icon={<CalendarMonth />} />
+        <AppSelect label="Category" value={categories.find((cat) => cat.id === formData.categoryId) || ""} options={categories} getOptionLabel={(opt) => opt.name} onChange={(val) => handleChange({ target: { name: "categoryId", value: val?.id ?? "" } })} icon={<FolderOpen />} />
+        <AppSelect label="Currency" value={currencies.find((cur) => cur.id === formData.currencyId) || ""} options={currencies} getOptionLabel={(opt) => opt.name} onChange={(val) => handleChange({ target: { name: "currencyId", value: val?.id ?? "" } })} icon={<MonetizationOn />} />
+      </AppModal>
+
+      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
+        <DialogTitle>Delete this transaction?</DialogTitle>
+        <DialogActions>
+          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
+          <Button color="error" onClick={() => handleConfirmDelete(deleteId)}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={3000} anchorOrigin={{ vertical: "top", horizontal: "center" }} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
+      </Snackbar>
 
       <ImportModal
         open={importOpen}
@@ -243,7 +317,6 @@ const TransactionsTable = () => {
           try {
             const response = await apiClient.post("/import/start-session", formData);
             const sessionId = response.data.id;
-
             navigate(`/import/review?sessionId=${sessionId}`);
             return response.data;
           } catch (error) {
@@ -252,169 +325,6 @@ const TransactionsTable = () => {
           }
         }}
       />
-
-      {/* Filters UI */}
-      <Stack spacing={2} mb={4}>
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          alignItems="center"
-          flexWrap="wrap"
-          useFlexGap
-        >
-          <AppDatePicker
-            label="From"
-            name="fromDate"
-            value={filters.fromDate}
-            onChange={(value) => updateFilters({ ...filters, fromDate: value })}
-            icon={<CalendarMonth fontSize="small" />}
-            sx={{ maxWidth: 220 }}
-          />
-          <AppDatePicker
-            label="To"
-            name="toDate"
-            value={filters.toDate}
-            onChange={(value) => updateFilters({ ...filters, toDate: value })}
-            icon={<CalendarMonth fontSize="small" />}
-            sx={{ maxWidth: 220 }}
-          />
-          <AppInput
-            label="Min Amount"
-            name="amountMin"
-            value={filters.amountMin}
-            onChange={(e) => updateFilters({ ...filters, amountMin: e.target.value })}
-            type="number"
-            icon={<AttachMoney fontSize="small" />}
-            sx={{ maxWidth: 220 }}
-          />
-          <AppInput
-            label="Max Amount"
-            name="amountMax"
-            value={filters.amountMax}
-            onChange={(e) => updateFilters({ ...filters, amountMax: e.target.value })}
-            type="number"
-            icon={<AttachMoney fontSize="small" />}
-            sx={{ maxWidth: 220 }}
-          />
-        </Stack>
-
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          alignItems="center"
-          justifyContent="space-between"
-          flexWrap="wrap"
-          useFlexGap
-        >
-          <Stack direction="row" spacing={2} flexWrap="wrap">
-            <AppSelect
-              label="Category"
-              value={categories.find((cat) => cat.id === filters.categoryId) || ""}
-              options={categories}
-              getOptionLabel={(opt) => opt.name}
-              onChange={(val) => updateFilters({ ...filters, categoryId: val?.id ?? "" })}
-              icon={<FolderOpen fontSize="small" />}
-              sx={{ minWidth: 220 }}
-            />
-            <AppSelect
-              label="Type"
-              value={typeOptions.find(opt => opt.id === filters.type) || ""}
-              options={typeOptions}
-              getOptionLabel={(opt) => opt.name}
-              onChange={(val) => updateFilters({ ...filters, type: val?.id ?? "" })}
-              icon={<Label fontSize="small" />}
-              sx={{ minWidth: 220 }}
-            />
-          </Stack>
-
-          <Stack direction="row" spacing={2} mt={{ xs: 2, md: 0 }}>
-            <ExportMenu filters={filters} />
-            <Button
-              variant="outlined"
-              sx={{ minWidth: 120, borderRadius: 2 }}
-              onClick={() => {
-                localStorage.removeItem(FILTERS_STORAGE_KEY);
-                const resetFilters = { ...defaultFilters };
-                setFilters(resetFilters);
-              }}
-            >
-              Reset
-            </Button>
-          </Stack>
-        </Stack>
-      </Stack>
-
-      <AppTable rows={transactions} columns={columns} pageSize={5} autoHeight loading={loading} />
-
-      {categories.length > 0 && (
-        <AppModal
-          open={open}
-          title={formData.id ? "Edit Transaction" : "Add Transaction"}
-          onClose={handleClose}
-          onSave={handleSubmit}
-        >
-          <AppInput
-            label="Type"
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            icon={<Label fontSize="small" />}
-          />
-          <AppInput
-            label="Amount"
-            name="amount"
-            value={formData.amount}
-            onChange={handleChange}
-            type="number"
-            icon={<AttachMoney fontSize="small" />}
-          />
-          <AppInput
-            label="Description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            icon={<Notes fontSize="small" />}
-          />
-          <AppDatePicker
-            label="Date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            icon={<CalendarMonth fontSize="small" />}
-          />
-          <AppSelect
-            label="Category"
-            value={categories.find((cat) => cat.id === formData.categoryId) || ""}
-            options={categories}
-            getOptionLabel={(opt) => opt.name}
-            onChange={(val) =>
-              handleChange({ target: { name: "categoryId", value: val?.id ?? "" } })
-            }
-            icon={<FolderOpen fontSize="small" />}
-            sx={{ minWidth: 220 }}
-          />
-          <AppSelect
-            label="Currency"
-            value={currencies.find((cur) => cur.id === formData.currencyId) || ""}
-            options={currencies}
-            getOptionLabel={(opt) => opt.name}
-            onChange={(val) =>
-              handleChange({ target: { name: "currencyId", value: val?.id ?? "" } })
-            }
-            icon={<MonetizationOn fontSize="small" />}
-            sx={{ minWidth: 220 }}
-          />
-        </AppModal>
-      )}
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
-      </Snackbar>
     </Box>
   );
 };

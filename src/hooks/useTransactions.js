@@ -24,6 +24,7 @@ const useTransactions = () => {
         fromDate: filters.fromDate?.toISOString(),
         toDate: filters.toDate?.toISOString(),
         type: filters.type || undefined,
+        description: filters.description || undefined,
         categoryId: filters.categoryId || undefined,
         amountMin: filters.amountMin || undefined,
         amountMax: filters.amountMax || undefined,

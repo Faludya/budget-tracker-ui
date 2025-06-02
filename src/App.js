@@ -79,3 +79,6 @@ export default App;
 
 //Execution policies
 //Set-ExecutionPolicy Unrestricted -Scope Process
+//npm run build
+//firebase deploy --only hosting
+//firebase hosting:disable
