@@ -13,14 +13,16 @@ import {
   Divider,
   Drawer,
   Snackbar,
+  Avatar,
+  Menu,
+  Tooltip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import { MonetizationOn } from "@mui/icons-material";
+import { MonetizationOn, AccountCircle } from "@mui/icons-material";
 
 import apiClient from "../api/axiosConfig";
 import Sitemark from "./SitemarkIcon";
-import ColorModeIconDropdown from "../shared-theme/ColorModeIconDropdown";
 import AppSelect from "./common/AppSelect";
 import { useUserPreferences } from "../contexts/UserPreferencesContext";
 import { useTransactionContext } from "../contexts/TransactionContext";
@@ -74,11 +76,16 @@ export default function Navbar() {
     severity: "info",
   });
 
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
+
   const toggleDrawer = (newOpen) => () => setOpen(newOpen);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("userId");
+    localStorage.removeItem("profilePictureUrl");
     setIsAuthenticated(false);
     navigate("");
     window.location.reload();
@@ -156,9 +163,41 @@ export default function Navbar() {
             )}
 
             {isAuthenticated ? (
-              <Button color="primary" variant="contained" size="small" onClick={handleLogout}>
-                Logout
-              </Button>
+              <>
+                <Tooltip title="Account">
+                  <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
+                    <Avatar
+                      src={localStorage.getItem("profilePictureUrl") || undefined}
+                      sx={{ width: 32, height: 32 }}
+                    >
+                      <AccountCircle />
+                    </Avatar>
+                  </IconButton>
+                </Tooltip>
+
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleMenuClose}
+                  PaperProps={{ elevation: 2, sx: { mt: 1.5 } }}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                >
+                  <MenuItem component={Link} to="/profile" onClick={handleMenuClose}>
+                    User Profile
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      handleMenuClose();
+                      handleLogout();
+                    }}
+                  >
+                    <Button color="secondary" variant="text" fullWidth>
+                      Logout
+                    </Button>
+                  </MenuItem>
+                </Menu>
+              </>
             ) : (
               <>
                 <Button component={Link} to="/signin" color="primary" variant="text" size="small">
@@ -169,11 +208,9 @@ export default function Navbar() {
                 </Button>
               </>
             )}
-            <ColorModeIconDropdown />
           </Box>
 
           <Box sx={{ display: { xs: "flex", md: "none" }, gap: 1 }}>
-            <ColorModeIconDropdown size="medium" />
             <IconButton aria-label="Menu button" onClick={toggleDrawer(true)}>
               <MenuIcon />
             </IconButton>
@@ -199,6 +236,9 @@ export default function Navbar() {
                     </MenuItem>
                     <MenuItem component={Link} to="/categories" onClick={toggleDrawer(false)}>
                       Categories
+                    </MenuItem>
+                    <MenuItem component={Link} to="/profile" onClick={toggleDrawer(false)}>
+                      Profile
                     </MenuItem>
                   </>
                 )}

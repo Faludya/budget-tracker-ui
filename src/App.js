@@ -12,10 +12,12 @@ import BudgetTracker from "./pages/BudgetTracker";
 import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
 import BudgetTemplateSelection from "./pages/BudgetTemplateSelection";
+import UserProfilePage from "./pages/UserProfilePage";
 import ImportReview from "./components/ImportReview"
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import { UserPreferencesProvider } from "./contexts/UserPreferencesContext";
 import { TransactionProvider } from "./contexts/TransactionContext";
+import { UserProvider  } from "./contexts/UserContext";
 
 import Footer from "./components/Footer"; // Keep Footer global if needed
 import AppTheme from "./shared-theme/AppTheme"; // Ensure it's correctly imported
@@ -27,6 +29,7 @@ function App() {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <UserPreferencesProvider>
+         <UserProvider>
         <TransactionProvider>
           <AppTheme>
             <CssBaseline enableColorScheme />
@@ -60,6 +63,7 @@ function App() {
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/budget-tracker" element={<BudgetTracker />} />
                         <Route path="/categories" element={<Categories />} />
+                        <Route path="/profile" element={<UserProfilePage />} /> 
                       </Route>
                     </Routes>
                   </Container>
@@ -70,6 +74,7 @@ function App() {
             </Router>
           </AppTheme>
         </TransactionProvider>
+        </UserProvider>
       </UserPreferencesProvider>
     </LocalizationProvider>
   );
