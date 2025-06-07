@@ -3,7 +3,6 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { alpha, styled } from "@mui/material/styles";
 import {
   AppBar,
-  Alert,
   Toolbar,
   Box,
   Button,
@@ -12,20 +11,29 @@ import {
   MenuItem,
   Divider,
   Drawer,
-  Snackbar,
   Avatar,
   Menu,
   Tooltip,
+  Snackbar,
+  Alert,
+  ListItemIcon,
+  Typography
 } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import { MonetizationOn, AccountCircle } from "@mui/icons-material";
+import {
+  Menu as MenuIcon,
+  CloseRounded as CloseRoundedIcon,
+  MonetizationOn,
+  AccountCircle,
+  Logout,
+  Person
+} from "@mui/icons-material";
 
 import apiClient from "../api/axiosConfig";
 import Sitemark from "./SitemarkIcon";
 import AppSelect from "./common/AppSelect";
 import { useUserPreferences } from "../contexts/UserPreferencesContext";
 import { useTransactionContext } from "../contexts/TransactionContext";
+import { useUserContext } from "../contexts/UserContext";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   display: "flex",
@@ -67,25 +75,24 @@ export default function Navbar() {
   );
   const [currencies, setCurrencies] = React.useState([]);
   const { preferences, setPreferences } = useUserPreferences();
+  const { user } = useUserContext();
   const { fetchTransactions } = useTransactionContext();
   const navigate = useNavigate();
   const location = useLocation();
+  const [anchorEl, setAnchorEl] = React.useState(null);
   const [snackbar, setSnackbar] = React.useState({
     open: false,
     message: "",
     severity: "info",
   });
 
-  const [anchorEl, setAnchorEl] = React.useState(null);
   const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
-
   const toggleDrawer = (newOpen) => () => setOpen(newOpen);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("userId");
-    localStorage.removeItem("profilePictureUrl");
     setIsAuthenticated(false);
     navigate("");
     window.location.reload();
@@ -158,7 +165,7 @@ export default function Navbar() {
                 getOptionValue={(opt) => opt.code}
                 onChange={(selectedCurrency) => selectedCurrency && handleCurrencyChange(selectedCurrency.code)}
                 icon={<MonetizationOn fontSize="small" />}
-                sx={{ minWidth: 150 }}
+                sx={{ minWidth: 130 }}
               />
             )}
 
@@ -167,11 +174,10 @@ export default function Navbar() {
                 <Tooltip title="Account">
                   <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
                     <Avatar
-                      src={localStorage.getItem("profilePictureUrl") || undefined}
+                      src={user?.profilePictureUrl || ""}
+                      alt="User"
                       sx={{ width: 32, height: 32 }}
-                    >
-                      <AccountCircle />
-                    </Avatar>
+                    />
                   </IconButton>
                 </Tooltip>
 
@@ -179,22 +185,20 @@ export default function Navbar() {
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
                   onClose={handleMenuClose}
-                  PaperProps={{ elevation: 2, sx: { mt: 1.5 } }}
+                  PaperProps={{ elevation: 2, sx: { mt: 1.5, borderRadius: 2, minWidth: 160 } }}
                   anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
                 >
                   <MenuItem component={Link} to="/profile" onClick={handleMenuClose}>
-                    User Profile
+                    <ListItemIcon><Person fontSize="small" /></ListItemIcon>
+                    <Typography variant="body2">User Profile</Typography>
                   </MenuItem>
-                  <MenuItem
-                    onClick={() => {
-                      handleMenuClose();
-                      handleLogout();
-                    }}
-                  >
-                    <Button color="secondary" variant="text" fullWidth>
+
+                  <MenuItem onClick={() => { handleMenuClose(); handleLogout(); }}>
+                    <ListItemIcon><Logout fontSize="small" /></ListItemIcon>
+                    <Typography variant="body2" color="error" fontWeight={500}>
                       Logout
-                    </Button>
+                    </Typography>
                   </MenuItem>
                 </Menu>
               </>
@@ -267,6 +271,7 @@ export default function Navbar() {
             </Drawer>
           </Box>
         </StyledToolbar>
+
         <Snackbar
           open={snackbar.open}
           autoHideDuration={4000}

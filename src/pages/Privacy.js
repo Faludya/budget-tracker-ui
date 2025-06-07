@@ -1,10 +1,19 @@
 import * as React from 'react';
-import { Box, Typography, Container, Card, CardContent, Grid } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Container,
+  Card,
+  CardContent,
+  Grid,
+  Tooltip
+} from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import SecurityIcon from '@mui/icons-material/Security';
 import ShareIcon from '@mui/icons-material/Share';
 import EmailIcon from '@mui/icons-material/Email';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import Confetti from 'react-confetti';
 
 const sections = [
   {
@@ -39,11 +48,36 @@ const sections = [
 ];
 
 export default function PrivacyPolicy() {
+  const [confettiActive, setConfettiActive] = React.useState(false);
+  const [clickCount, setClickCount] = React.useState(0);
+
+  const handleTitleClick = () => {
+    const next = clickCount + 1;
+    setClickCount(next);
+
+    if (next >= 5) {
+      setConfettiActive(true);
+      setTimeout(() => {
+        setConfettiActive(false);
+        setClickCount(0);
+      }, 5000);
+    }
+  };
+
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
-      <Typography variant="h3" gutterBottom>
-        Privacy Policy
-      </Typography>
+      {confettiActive && <Confetti numberOfPieces={400} recycle={true} />}
+      <Tooltip title="Click me five times 👀" arrow>
+        <Typography
+          variant="h3"
+          gutterBottom
+          sx={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={handleTitleClick}
+        >
+          Privacy Policy
+        </Typography>
+      </Tooltip>
+
       <Typography variant="body1" paragraph>
         Your privacy is important to us. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Budget Tracker application.
       </Typography>
@@ -51,10 +85,31 @@ export default function PrivacyPolicy() {
       <Grid container spacing={4}>
         {sections.map((section, index) => (
           <Grid item xs={12} key={index}>
-            <Card variant="outlined">
+            <Card
+              variant="outlined"
+              sx={{
+                transition: "transform 0.2s ease-in-out",
+                '&:hover': {
+                  transform: 'scale(1.01)',
+                },
+              }}
+            >
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  {section.icon}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        transform: 'scale(1.2)',
+                        color: 'primary.main',
+                      },
+                    }}
+                  >
+                    {section.icon}
+                  </Box>
                   <Typography variant="h5">{section.title}</Typography>
                 </Box>
                 <Typography variant="body1" component="pre" whiteSpace="pre-wrap">

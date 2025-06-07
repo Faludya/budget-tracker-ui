@@ -116,99 +116,99 @@ const UserProfilePage = () => {
         User Profile
       </Typography>
 
-<Card
-  variant="outlined"
-  sx={{
-    p: 2,
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
-    bgcolor: "background.paper",
-    mb: 4,
-  }}
->
-  <Box sx={{ display: "flex", gap: 3 }}>
-    <Box sx={{ position: "relative", width: 90, height: 90 }}>
-      <Avatar
-        src={formData.profilePictureUrl}
-        alt="Profile"
-        sx={{ width: 80, height: 80 }}
-      />
-      <IconButton
-        size="small"
-        onClick={() => {
-          setEditingImage(true);
-          setTempImageUrl(formData.profilePictureUrl || "");
-        }}
+      <Card
+        variant="outlined"
         sx={{
-          position: "absolute",
-          bottom: 0,
-          right: 0,
-          p: "4px",
-          boxShadow: 1,
-          backgroundColor: "transparent",
-          "&:hover": {
-            backgroundColor: "rgba(0, 0, 0, 0.04)",
-          },
+          p: 2,
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          bgcolor: "background.paper",
+          mb: 4,
         }}
       >
-        <EditIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-      </IconButton>
-    </Box>
+        <Box sx={{ display: "flex", gap: 3 }}>
+          <Box sx={{ position: "relative", width: 90, height: 90 }}>
+            <Avatar
+              src={formData.profilePictureUrl}
+              alt="Profile"
+              sx={{ width: 80, height: 80 }}
+            />
+            <IconButton
+              size="small"
+              onClick={() => {
+                setEditingImage(true);
+                setTempImageUrl(formData.profilePictureUrl || "");
+              }}
+              sx={{
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                p: "4px",
+                boxShadow: 1,
+                backgroundColor: "transparent",
+                "&:hover": {
+                  backgroundColor: "rgba(0, 0, 0, 0.04)",
+                },
+              }}
+            >
+              <EditIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+            </IconButton>
+          </Box>
 
-    <Box>
-      <Typography variant="subtitle1" fontWeight={600}>
-        {formData.firstName} {formData.lastName}
-      </Typography>
-      <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
-        <Email fontSize="small" />
-        <Typography variant="body2">{formData.email}</Typography>
-      </Stack>
-      <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
-        <Phone fontSize="small" />
-        <Typography variant="body2">{formData.phoneNumber}</Typography>
-      </Stack>
-      {formData.googleId && (
-        <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
-          <GTranslate fontSize="small" color="primary" />
-          <Typography variant="body2" color="primary">
-            Google Account
-          </Typography>
-        </Stack>
-      )}
-    </Box>
-  </Box>
-
-  {editingImage && (
-    <Box mt={2}>
-      <Stack spacing={1}>
-        <AppInput
-          label="Profile Picture URL"
-          value={tempImageUrl}
-          onChange={(e) => setTempImageUrl(e.target.value)}
-        />
-        <Box display="flex" justifyContent="flex-end" gap={1}>
-          <Button variant="outlined" size="small" onClick={() => setEditingImage(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => {
-              setFormData((prev) => ({
-                ...prev,
-                profilePictureUrl: tempImageUrl,
-              }));
-              setEditingImage(false);
-            }}
-          >
-            Save
-          </Button>
+          <Box>
+            <Typography variant="subtitle1" fontWeight={600}>
+              {formData.firstName} {formData.lastName}
+            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
+              <Email fontSize="small" />
+              <Typography variant="body2">{formData.email}</Typography>
+            </Stack>
+            <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
+              <Phone fontSize="small" />
+              <Typography variant="body2">{formData.phoneNumber}</Typography>
+            </Stack>
+            {formData.googleId && (
+              <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
+                <GTranslate fontSize="small" color="primary" />
+                <Typography variant="body2" color="primary">
+                  Google Account
+                </Typography>
+              </Stack>
+            )}
+          </Box>
         </Box>
-      </Stack>
-    </Box>
-  )}
-</Card>
+
+        {editingImage && (
+          <Box mt={2}>
+            <Stack spacing={1}>
+              <AppInput
+                label="Profile Picture URL"
+                value={tempImageUrl}
+                onChange={(e) => setTempImageUrl(e.target.value)}
+              />
+              <Box display="flex" justifyContent="flex-end" gap={1}>
+                <Button variant="outlined" size="small" onClick={() => setEditingImage(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      profilePictureUrl: tempImageUrl,
+                    }));
+                    setEditingImage(false);
+                  }}
+                >
+                  Save
+                </Button>
+              </Box>
+            </Stack>
+          </Box>
+        )}
+      </Card>
 
 
       <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 3 }}>
@@ -249,6 +249,7 @@ const UserProfilePage = () => {
                   name="dateOfBirth"
                   value={formData.dateOfBirth}
                   onChange={handleDateChange}
+                  format={preferences?.dateFormat}
                   icon={<CalendarToday />}
                 />
               </Stack>
@@ -290,7 +291,14 @@ const UserProfilePage = () => {
               <AppSelect
                 label="Date Format"
                 value={{ id: prefData.dateFormat }}
-                options={[{ id: "DD/MM/YYYY" }, { id: "MM/DD/YYYY" }]}
+                options={[
+                  { id: "DD/MM/YYYY" },
+                  { id: "MM/DD/YYYY" },
+                  { id: "YYYY-MM-DD" },
+                  { id: "D MMM YYYY" },
+                  { id: "MMM D, YYYY" },
+                  { id: "dddd, MMM D" },
+                ]}
                 getOptionLabel={(opt) => opt.id}
                 getOptionValue={(opt) => opt.id}
                 onChange={(val) => handlePrefChange("dateFormat", val?.id)}

@@ -22,9 +22,9 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
-import { WarningAmberRounded } from "@mui/icons-material";
+import { WarningAmberRounded, FolderOpen } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
-import AppSelect from "../components/common/AppSelect";
+import CategorySelect from "../components/common/CategorySelect";
 import DeleteIcon from "@mui/icons-material/Delete";
 import apiClient from "../api/axiosConfig";
 
@@ -113,7 +113,7 @@ const ImportReview = () => {
   const handleSaveDraft = async () => {
     setSaving(true);
     try {
-      await apiClient.put(`/import/session/${sessionId}`, transactions );
+      await apiClient.put(`/import/session/${sessionId}`, transactions);
       setSnackbarOpen(true);
     } catch (error) {
       console.error("Error saving draft:", error);
@@ -135,8 +135,8 @@ const ImportReview = () => {
       console.error("Error completing import:", error);
     }
     finally {
-    setCompleting(false);
-  }
+      setCompleting(false);
+    }
   };
 
   const getFieldError = (value) => !value || (typeof value === "string" && value.trim() === "");
@@ -186,7 +186,11 @@ const ImportReview = () => {
                           sx={getFieldError(tx.description) ? { border: "1px solid red", borderRadius: 1 } : {}}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{
+                        width: "90px",
+                        maxWidth: "90px",
+                        padding: "8px 8px",
+                      }}>
                         <TextField
                           type="number"
                           fullWidth
@@ -195,7 +199,11 @@ const ImportReview = () => {
                           sx={getFieldError(tx.amount) ? { border: "1px solid red", borderRadius: 1 } : {}}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{
+                        width: "90px",
+                        maxWidth: "90px",
+                        padding: "8px 8px", // tighter padding
+                      }}>
                         <Select
                           fullWidth
                           value={tx.currency || ""}
@@ -208,12 +216,12 @@ const ImportReview = () => {
                         </Select>
                       </TableCell>
                       <TableCell>
-                        <AppSelect
+                        <CategorySelect
                           options={categories}
-                          value={categories.find((c) => c.name === tx.category) || ""}
-                          onChange={(val) => handleChange(index, "category", val.name)}
-                          getOptionLabel={(opt) => opt.name}
-                          getOptionValue={(opt) => opt.name}
+                          value={categories.find((c) => c.name === tx.category) || null}
+                          onChange={(val) => handleChange(index, "category", val?.name ?? "")}
+                          icon={<FolderOpen fontSize="small" />}
+                          placeholder="Search categories..."
                           sx={getFieldError(tx.category) ? { border: '1px solid red', borderRadius: 1 } : {}}
                         />
                       </TableCell>
@@ -239,30 +247,30 @@ const ImportReview = () => {
               <Button
                 variant="contained"
                 onClick={handleSaveDraft}
-                  disabled={saving}
-                >
-                  {saving ? <CircularProgress size={20} sx={{ color: "white" }} /> : "Save Draft"}
-                </Button>
+                disabled={saving}
+              >
+                {saving ? <CircularProgress size={20} sx={{ color: "white" }} /> : "Save Draft"}
+              </Button>
 
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleCompleteImport}
-                  disabled={!isValid}
-                  sx={{
-                    "&.Mui-disabled": {
-                      backgroundColor: "#e0e0e0",
-                      color: "#9e9e9e",
-                      boxShadow: "none",
-                      cursor: "not-allowed",
-                    },
-                  }}
-                >
-                  {completing ? <CircularProgress size={20} sx={{ color: "white" }} /> : "Complete Import"}
-                </Button>
-              </Stack>
-            </Paper>
-          </>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleCompleteImport}
+                disabled={!isValid}
+                sx={{
+                  "&.Mui-disabled": {
+                    backgroundColor: "#e0e0e0",
+                    color: "#9e9e9e",
+                    boxShadow: "none",
+                    cursor: "not-allowed",
+                  },
+                }}
+              >
+                {completing ? <CircularProgress size={20} sx={{ color: "white" }} /> : "Complete Import"}
+              </Button>
+            </Stack>
+          </Paper>
+        </>
       )}
 
       <Dialog

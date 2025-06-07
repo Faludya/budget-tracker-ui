@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -12,6 +12,7 @@ import AppInput from "../components/common/AppInput";
 import apiClient from "../api/axiosConfig";
 import BudgetChart from "../components/budget-tracking/BudgetChart";
 import AddCategoryLimit from "../components/budget-tracking/AddCategoryLimit";
+import { useUserPreferences } from "../contexts/UserPreferencesContext";
 
 const BudgetTemplateSelection = () => {
   const navigate = useNavigate();
@@ -21,65 +22,77 @@ const BudgetTemplateSelection = () => {
   const [monthlyIncome, setMonthlyIncome] = useState("");
   const [appliedBudget, setAppliedBudget] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currencySymbol, setCurrencySymbol] = useState("RON");
 
+  const { preferences } = useUserPreferences();
   const userId = localStorage.getItem("userId");
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const templatesResponse = await apiClient.get("/budget-templates");
-        const loadedTemplates = templatesResponse.data;
-        setTemplates(loadedTemplates);
+  const fetchBudgetData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [templatesResponse, currenciesResponse] = await Promise.all([
+        apiClient.get("/budget-templates"),
+        apiClient.get("/currencies"),
+      ]);
 
-        const budgetResponse = await apiClient.get(
-          `/userbudgets/${userId}/${currentMonth}/${currentYear}`
-        );
-        const budget = budgetResponse.data;
-        setAppliedBudget(budget);
+      const loadedTemplates = templatesResponse.data;
+      setTemplates(loadedTemplates);
 
-        const estimatedIncome = budget.budgetItems.reduce(
-          (sum, item) => sum + item.limit,
-          0
-        );
-        setMonthlyIncome(Number(estimatedIncome || 0).toFixed(0));
+      const budgetResponse = await apiClient.get(
+        `/userbudgets/${userId}/${currentMonth}/${currentYear}`
+      );
+      const budget = budgetResponse.data;
+      setAppliedBudget(budget);
 
-        const matchingTemplate = loadedTemplates.find((t) => {
-          const templateGroups = t.items.map((ti) => ti.categoryType).sort();
+      const estimatedIncome = budget.budgetItems.reduce(
+        (sum, item) => sum + item.limit,
+        0
+      );
+      setMonthlyIncome(Number(estimatedIncome || 0).toFixed(0));
 
-          const budgetGroups = budget.budgetItems
-            .filter((bi) => bi.categoryId == null && bi.categoryType !== "Uncategorized")
-            .map((bi) => bi.categoryType)
-            .sort();
+      const matchingTemplate = loadedTemplates.find((t) => {
+        const templateGroups = t.items.map((ti) => ti.categoryType).sort();
 
-          return JSON.stringify(templateGroups) === JSON.stringify(budgetGroups);
-        });
+        const budgetGroups = budget.budgetItems
+          .filter((bi) => bi.categoryId == null && bi.categoryType !== "Uncategorized")
+          .map((bi) => bi.categoryType)
+          .sort();
 
-        if (matchingTemplate) {
-          setSelectedTemplateId(matchingTemplate.id);
-          setSelectedTemplate(matchingTemplate);
-        }
+        return JSON.stringify(templateGroups) === JSON.stringify(budgetGroups);
+      });
 
-      } catch (err) {
-        if (err.response?.status !== 404) {
-          console.error("Error loading budget or templates", err);
-        }
-      } finally {
-        setLoading(false);
+      if (matchingTemplate) {
+        setSelectedTemplateId(matchingTemplate.id);
+        setSelectedTemplate(matchingTemplate);
       }
-    };
 
-    init();
-  }, [userId, currentMonth, currentYear]);
+      const preferredCurrencyCode = preferences?.preferredCurrency;
+      const matched = currenciesResponse.data.find(c => c.code === preferredCurrencyCode);
+      setCurrencySymbol(matched?.symbol || preferredCurrencyCode);
 
-useEffect(() => {
-  if (!templates.length || !selectedTemplateId) return;
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        console.error("Error loading budget, templates, or currency", err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [preferences?.preferredCurrency, userId, currentMonth, currentYear]);
 
-  const found = templates.find((t) => t.id === selectedTemplateId);
-  if (found) setSelectedTemplate(found);
-}, [selectedTemplateId, templates]);
+  useEffect(() => {
+    if (preferences?.preferredCurrency) {
+      fetchBudgetData();
+    }
+  }, [fetchBudgetData, preferences?.preferredCurrency]);
 
+  useEffect(() => {
+    if (!templates.length || !selectedTemplateId) return;
+
+    const found = templates.find((t) => t.id === selectedTemplateId);
+    if (found) setSelectedTemplate(found);
+  }, [selectedTemplateId, templates]);
 
   const handleApplyTemplate = async () => {
     if (!selectedTemplateId || !monthlyIncome) {
@@ -98,13 +111,7 @@ useEffect(() => {
         year: currentYear,
       });
 
-      const refreshed = await apiClient.get(
-        `/userbudgets/${userId}/${currentMonth}/${currentYear}`
-      );
-      setAppliedBudget(refreshed.data);
-
-      const matched = templates.find((t) => t.id === selectedTemplateId);
-      if (matched) setSelectedTemplate(matched);
+      await fetchBudgetData();
     } catch (error) {
       console.error("Failed to apply budget template:", error);
     } finally {
@@ -129,23 +136,28 @@ useEffect(() => {
   }) ?? [];
 
   const chartItems = [
-    ...manualLimits,
-    ...breakdownItems.filter(
-      (bi) => !manualLimits.some((ml) => ml.categoryType === bi.categoryType)
-    ),
+    ...manualLimits.map((item) => ({
+      ...item,
+      value: item.convertedLimit ?? item.limit
+    })),
+    ...breakdownItems
+      .filter((bi) => !manualLimits.some((ml) => ml.categoryType === bi.categoryType))
+      .map((item) => ({
+        ...item,
+        value: item.limit
+      }))
   ];
 
   const allCategories = useMemo(() => {
-  return appliedBudget?.budgetItems
-    .filter(bi => bi.category)
-    .map(bi => bi.category)
-    .filter((v, i, a) => a.findIndex(c => c.id === v.id) === i); // remove duplicates
-}, [appliedBudget]);
+    return appliedBudget?.budgetItems
+      .filter(bi => bi.category)
+      .map(bi => bi.category)
+      .filter((v, i, a) => a.findIndex(c => c.id === v.id) === i);
+  }, [appliedBudget]);
 
-const templateGroups = useMemo(() => {
-  return selectedTemplate?.items?.map(item => item.categoryType) ?? [];
-}, [selectedTemplate]);
-
+  const templateGroups = useMemo(() => {
+    return selectedTemplate?.items?.map(item => item.categoryType) ?? [];
+  }, [selectedTemplate]);
 
   return (
     <Box p={4} maxWidth={1400} mx="auto">
@@ -183,7 +195,9 @@ const templateGroups = useMemo(() => {
           </Stack>
         </Box>
 
-        <Box flex={2} >{chartItems.length > 0 && <BudgetChart items={chartItems} />}</Box>
+        <Box flex={2}>
+          {chartItems.length > 0 && <BudgetChart items={chartItems} currencySymbol={currencySymbol} />}
+        </Box>
       </Stack>
 
       {!loading && appliedBudget && (
@@ -195,9 +209,9 @@ const templateGroups = useMemo(() => {
             selectedTemplate={selectedTemplate}
             allCategories={allCategories}
             templateGroups={templateGroups}
-            onBudgetUpdate={setAppliedBudget}
+            onBudgetUpdate={fetchBudgetData}
+            currencySymbol={currencySymbol}
           />
-
         </Box>
       )}
     </Box>

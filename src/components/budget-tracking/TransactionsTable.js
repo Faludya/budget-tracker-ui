@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogTitle,
   DialogActions,
+  Icon,
 } from "@mui/material";
 import {
   Label,
@@ -23,6 +24,7 @@ import {
   Delete,
   UploadFile,
 } from "@mui/icons-material";
+import * as Icons from "@mui/icons-material";
 import dayjs from "dayjs";
 import useTransactions from "../../hooks/useTransactions";
 import useTransactionForm from "../../hooks/useTransactionForm";
@@ -32,6 +34,7 @@ import AppSelect from "../../components/common/AppSelect";
 import AppInput from "../../components/common/AppInput";
 import AppDatePicker from "../../components/common/AppDatePicker";
 import AppTable from "../../components/common/AppTable";
+import CategorySelect from "../../components/common/CategorySelect";
 import ExportMenu from "../../components/common/ExportMenu";
 import ImportModal from "./ImportModal";
 import { useUserPreferences } from "../../contexts/UserPreferencesContext";
@@ -135,14 +138,33 @@ const TransactionsTable = () => {
   }, []);
 
   const updateFilters = (updated) => {
-    setFilters(updated);
-    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(updated));
+    const sanitized = {
+      ...updated,
+      fromDate: updated.fromDate ? dayjs(updated.fromDate) : null,
+      toDate: updated.toDate ? dayjs(updated.toDate) : null,
+    };
+
+    setFilters(sanitized);
+    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(sanitized));
+    fetchFilteredTransactions(sanitized);
   };
 
-  const resetFilters = () => {
-    localStorage.removeItem(FILTERS_STORAGE_KEY);
-    setFilters({ ...defaultFilters });
+const resetFilters = () => {
+  const reset = {
+    fromDate: dayjs().startOf("month"),
+    toDate: dayjs().endOf("month"),
+    amountMin: "",
+    amountMax: "",
+    categoryId: "",
+    type: "",
+    description: "",
   };
+
+  setFilters(reset);
+  localStorage.removeItem(FILTERS_STORAGE_KEY);
+  fetchFilteredTransactions(reset);
+};
+
 
   const handleConfirmDelete = async (id) => {
     try {
@@ -158,7 +180,21 @@ const TransactionsTable = () => {
   };
 
   const columns = [
-    { field: "date", headerName: "Date", flex: 1, renderCell: ({ row }) => dayjs(row.date).format("DD/MM/YYYY") },
+    {
+      field: "date",
+      headerName: "Date",
+      flex: 1,
+      renderCell: ({ row }) => {
+        const format = preferences?.dateFormat || "DD/MM/YYYY";
+        const today = dayjs();
+        const value = dayjs(row.date);
+
+        if (value.isSame(today, "day")) return "Today";
+        if (value.isSame(today.subtract(1, "day"), "day")) return "Yesterday";
+        return value.format(format);
+      }
+    },
+
     { field: "type", headerName: "Type", flex: 1 },
     {
       field: "amount",
@@ -171,11 +207,25 @@ const TransactionsTable = () => {
     },
     { field: "description", headerName: "Description", flex: 2 },
     {
-      field: "categoryName",
+      field: "categoryDisplay",
       headerName: "Category",
-      flex: 1,
-      renderCell: ({ row }) => row?.category?.name ?? "Unknown",
+      flex: 1.5,
+      renderCell: ({ row }) => {
+        const category = row?.category;
+        if (!category) return "Unknown";
+
+        const IconComponent = Icons[category.iconName] || Icons.Category;
+
+        return (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <IconComponent fontSize="small" sx={{ color: category.colorHex || "inherit" }} />
+            <span>{category.name}</span>
+          </Stack>
+        );
+      },
     },
+
+
     {
       field: "actions",
       headerName: "Actions",
@@ -207,8 +257,36 @@ const TransactionsTable = () => {
 
       <Stack spacing={2} mb={4}>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-          <AppDatePicker label="From" name="fromDate" value={filters.fromDate} onChange={(value) => updateFilters({ ...filters, fromDate: value })} icon={<CalendarMonth />} />
-          <AppDatePicker label="To" name="toDate" value={filters.toDate} onChange={(value) => updateFilters({ ...filters, toDate: value })} icon={<CalendarMonth />} />
+<AppDatePicker
+  label="From"
+  name="fromDate"
+  value={filters.fromDate}
+  onChange={({ target }) => {
+    const date = dayjs(target.value);
+    if (date.isValid()) {
+      updateFilters({ ...filters, fromDate: date });
+    }
+  }}
+  format={preferences?.dateFormat}
+  icon={<CalendarMonth />}
+/>
+
+<AppDatePicker
+  label="To"
+  name="toDate"
+  value={filters.toDate}
+  onChange={({ target }) => {
+    const date = dayjs(target.value);
+    if (date.isValid()) {
+      updateFilters({ ...filters, toDate: date });
+    }
+  }}
+  format={preferences?.dateFormat}
+  icon={<CalendarMonth />}
+/>
+
+
+
           <AppInput label="Min Amount" name="amountMin" value={filters.amountMin} onChange={(e) => updateFilters({ ...filters, amountMin: e.target.value })} type="number" icon={<AttachMoney />} />
           <AppInput label="Max Amount" name="amountMax" value={filters.amountMax} onChange={(e) => updateFilters({ ...filters, amountMax: e.target.value })} type="number" icon={<AttachMoney />} />
         </Stack>
@@ -239,16 +317,12 @@ const TransactionsTable = () => {
 
             {/* Category */}
             <Box sx={{ minWidth: 250 }}>
-              <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-                Category
-              </Typography>
-              <AppSelect
-                value={categories.find((cat) => cat.id === filters.categoryId) || ""}
+              <CategorySelect
+                label="Category"
+                value={categories.find((cat) => cat.id === filters.categoryId) || null}
                 options={categories}
-                getOptionLabel={(opt) => opt.name}
                 onChange={(val) => updateFilters({ ...filters, categoryId: val?.id ?? "" })}
                 icon={<FolderOpen fontSize="small" />}
-                sx={{ width: "100%" }}
               />
             </Box>
 
@@ -269,11 +343,11 @@ const TransactionsTable = () => {
           </Stack>
 
           {/* Buttons */}
-          <Stack direction="row" spacing={2} alignSelf={{ xs: "center", md: "flex-end" }}>
-            <ExportMenu filters={filters} />
+          <Stack direction="row" spacing={1} alignSelf={{ xs: "center", md: "flex-end" }}>
             <Button variant="outlined" onClick={resetFilters}>
               Reset
             </Button>
+            <ExportMenu filters={filters} />
           </Stack>
         </Stack>
 
@@ -289,8 +363,16 @@ const TransactionsTable = () => {
         </RadioGroup>
         <AppInput label="Amount" name="amount" value={formData.amount} onChange={handleChange} type="number" icon={<AttachMoney />} />
         <AppInput label="Description" name="description" value={formData.description} onChange={handleChange} icon={<Notes />} />
-        <AppDatePicker label="Date" name="date" value={formData.date} onChange={handleChange} icon={<CalendarMonth />} />
-        <AppSelect label="Category" value={categories.find((cat) => cat.id === formData.categoryId) || ""} options={categories} getOptionLabel={(opt) => opt.name} onChange={(val) => handleChange({ target: { name: "categoryId", value: val?.id ?? "" } })} icon={<FolderOpen />} />
+        <AppDatePicker label="Date" name="date" value={formData.date} onChange={handleChange} format={preferences?.dateFormat} icon={<CalendarMonth />} />
+        <CategorySelect
+          label="Category"
+          value={categories.find((cat) => cat.id === formData.categoryId) || null}
+          options={categories}
+          icon={<FolderOpen />}
+          onChange={(val) =>
+            handleChange({ target: { name: "categoryId", value: val?.id ?? "" } })
+          }
+        />
         <AppSelect label="Currency" value={currencies.find((cur) => cur.id === formData.currencyId) || ""} options={currencies} getOptionLabel={(opt) => opt.name} onChange={(val) => handleChange({ target: { name: "currencyId", value: val?.id ?? "" } })} icon={<MonetizationOn />} />
       </AppModal>
 

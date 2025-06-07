@@ -1,8 +1,20 @@
-import { Stack, Button, Menu, MenuItem, Tooltip, IconButton } from "@mui/material";
+import {
+  Stack,
+  Button,
+  Menu,
+  MenuItem,
+  Tooltip,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+} from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { useState } from "react";
 import dayjs from "dayjs";
-import apiClient from "../../api/axiosConfig"; // adjust path based on your project
+import apiClient from "../../api/axiosConfig";
 
 const ExportButton = ({ filters }) => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -46,23 +58,64 @@ const ExportButton = ({ filters }) => {
   };
 
   return (
-    <Stack direction="row" alignItems="center" spacing={1}>
-      <Button onClick={handleClick} variant="outlined">
-        Export ▼
-      </Button>
+    <Stack direction="row" alignItems="center" spacing={0.35}>
+  <Button
+    onClick={handleClick}
+    variant="outlined"
+    endIcon={<ArrowDropDownIcon />}
+    sx={{ textTransform: "none" }}
+  >
+    Export
+  </Button>
 
-      <Tooltip
-        title="Your exported file will include only the transactions currently filtered."
-        arrow
+  <Tooltip title="Only filtered transactions will be included in the export." arrow>
+    <IconButton
+      size="small"
+      disableRipple
+      sx={{
+        ml: "-2px", // move slightly left if needed
+        color: "text.secondary",
+        backgroundColor: "transparent",
+        "&:hover": {
+          backgroundColor: "transparent",
+          color: "primary.main",
+        },
+      }}
+    >
+      <InfoOutlinedIcon fontSize="medium" />
+    </IconButton>
+  </Tooltip>
+
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleClose}
+        MenuListProps={{
+          dense: true,
+          sx: { minWidth: 160, p: 0.5 },
+        }}
+        PaperProps={{
+          elevation: 4,
+          sx: {
+            borderRadius: 2,
+            boxShadow: "0px 4px 16px rgba(0,0,0,0.12)",
+          },
+        }}
       >
-        <IconButton size="small" sx={{ border: "1px solid #ccc", borderRadius: 2 }}>
-          <InfoOutlinedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+        <MenuItem onClick={() => handleExport("pdf")}>
+          <ListItemIcon>
+            <PictureAsPdfIcon fontSize="small" color="error" />
+          </ListItemIcon>
+          <ListItemText primary="PDF" />
+        </MenuItem>
 
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
-        <MenuItem onClick={() => handleExport("pdf")}>Export as PDF</MenuItem>
-        <MenuItem onClick={() => handleExport("excel")}>Export as Excel</MenuItem>
+        <MenuItem onClick={() => handleExport("excel")}>
+          <ListItemIcon>
+            <GridOnIcon fontSize="small" sx={{ color: "#1D6F42" }} />
+          </ListItemIcon>
+          <ListItemText primary="Excel" />
+        </MenuItem>
       </Menu>
     </Stack>
   );

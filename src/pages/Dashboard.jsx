@@ -5,9 +5,22 @@ import SummaryWidget from "../components/dashboard/SummaryWidget";
 import TopExpensesWidget from "../components/dashboard/TopExpensesWidget";
 import MonthlyExpensesChart from "../components/dashboard/MonthlyExpensesChart";
 import AppDatePicker from "../components/common/AppDatePicker";
+import { useUserPreferences } from "../contexts/UserPreferencesContext";
 
 const Dashboard = () => {
     const [selectedDate, setSelectedDate] = useState(dayjs());
+    const { preferences } = useUserPreferences();
+    const deriveMonthYearFormat = (userFormat) => {
+        if (!userFormat) return "MMM YYYY";
+
+        if (userFormat.startsWith("YYYY")) return "YYYY-MM";
+        if (userFormat.startsWith("MM")) return "MM/YYYY";
+        if (userFormat.includes("MMM")) return "MMM YYYY";
+
+        return "MM/YYYY"; // safe fallback
+    };
+
+    const monthYearFormat = deriveMonthYearFormat(preferences?.dateFormat);
 
     return (
         <Box p={3}>
@@ -24,7 +37,7 @@ const Dashboard = () => {
                         }
                     }}
                     views={["year", "month"]}
-                    format="MM/YYYY"
+                    format={monthYearFormat}
                     openTo="month"
                 />
             </Stack>

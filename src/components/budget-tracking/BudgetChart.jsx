@@ -2,30 +2,24 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { Box, Typography } from "@mui/material";
 
 const COLORS = [
-  "#5C80BC", // Cool blue
-  "#96C5B0", // Gentle teal
-  "#F7A072", // Soft coral
-  "#9AD0EC", // Sky blue
-  "#B8E0D2", // Mint aqua
-  "#FFC97C", // Warm muted yellow
-  "#A29DDC", // Lavender gray
-  "#D4A5A5", // Rose quartz
+  "#5C80BC", "#96C5B0", "#F7A072", "#9AD0EC",
+  "#B8E0D2", "#FFC97C", "#A29DDC", "#D4A5A5",
 ];
 
-
-
-const BudgetChart = ({ items }) => {
+const BudgetChart = ({ items, currencySymbol = "EUR" }) => {
   if (!items || items.length === 0) return null;
 
-  // Only include category-specific limits (not group-level totals)
+  // Only include category-type breakdowns (no individual category limits)
   const relevantItems = items.filter((item) => item.categoryId == null);
 
-  // Group by categoryType (aka budget group)
+  // Group by categoryType and sum converted values
   const groupedData = Object.entries(
     relevantItems.reduce((acc, item) => {
       const key = item.categoryType || "Uncategorized";
+      const amount = item.convertedLimit ?? item.limit;
+
       if (!acc[key]) acc[key] = 0;
-      acc[key] += item.limit;
+      acc[key] += amount;
       return acc;
     }, {})
   ).map(([name, value]) => ({ name, value }));
@@ -57,13 +51,13 @@ const BudgetChart = ({ items }) => {
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip formatter={(value) => `${value} LEI`} />
+          <Tooltip formatter={(value) => `${value.toFixed(2)} ${currencySymbol}`} />
         </PieChart>
       </ResponsiveContainer>
 
       <Box>
         <Typography variant="subtitle1" fontWeight="bold" textAlign="left">
-          Total Budget: {total.toFixed(2)} LEI
+          Total Budget: {total.toFixed(2)} {currencySymbol}
         </Typography>
         <ul style={{ listStyle: "none", padding: 0, margin: "10px 0", textAlign: "left" }}>
           {chartData.map((entry, index) => (
@@ -78,7 +72,7 @@ const BudgetChart = ({ items }) => {
                 }}
               />
               <span>
-                {entry.name}: {entry.value.toFixed(2)} LEI ({entry.percentage.toFixed(1)}%)
+                {entry.name}: {entry.value.toFixed(2)} {currencySymbol} ({entry.percentage.toFixed(1)}%)
               </span>
             </li>
           ))}
