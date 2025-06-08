@@ -151,6 +151,7 @@ export default function Navbar() {
                   <NavButton to="/dashboard" label="Dashboard" currentPath={location.pathname} />
                   <NavButton to="/categories" label="Categories" currentPath={location.pathname} />
                   <NavButton to="/budget/setup" label="Set Budget" currentPath={location.pathname} />
+                  <NavButton to="/keyword-mappings" label="Transaction Mappings" currentPath={location.pathname} />
                 </>
               )}
             </Box>
@@ -243,6 +244,9 @@ export default function Navbar() {
                     </MenuItem>
                     <MenuItem component={Link} to="/profile" onClick={toggleDrawer(false)}>
                       Profile
+                    </MenuItem>
+                    <MenuItem component={Link} to="/keyword-mappings" onClick={toggleDrawer(false)}>
+                      Transaction Mappings
                     </MenuItem>
                   </>
                 )}

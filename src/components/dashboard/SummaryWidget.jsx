@@ -7,10 +7,7 @@ import {
   Paper,
   Stack,
 } from "@mui/material";
-import {
-  TrendingDown,
-  TrendingUp,
-} from "@mui/icons-material";
+import { TrendingDown, TrendingUp } from "@mui/icons-material";
 import { Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -19,6 +16,7 @@ import {
   Legend,
 } from "chart.js";
 import apiClient from "../../api/axiosConfig";
+import { useUserPreferences } from "../../contexts/UserPreferencesContext";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -26,6 +24,7 @@ const SummaryWidget = ({ selectedDate }) => {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
+  const { preferences } = useUserPreferences();
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -48,10 +47,10 @@ const SummaryWidget = ({ selectedDate }) => {
       }
     };
 
-    if (selectedDate) {
+    if (selectedDate && preferences?.preferredCurrency) {
       fetchSummary();
     }
-  }, [selectedDate]); // ✅ Re-fetch when date changes
+  }, [selectedDate, preferences?.preferredCurrency]);
 
   if (loading || !summary) {
     return (
@@ -62,6 +61,10 @@ const SummaryWidget = ({ selectedDate }) => {
   }
 
   const net = summary.totalIncome - summary.totalExpense;
+  const currency = preferences?.currencySymbol || "";
+
+  const formatAmount = (value) =>
+    `${currency} ${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   const pastelColors = theme.palette.mode === "dark"
     ? ["#78C9A6", "#E48584"]
@@ -103,7 +106,7 @@ const SummaryWidget = ({ selectedDate }) => {
               legend: { display: false },
               tooltip: {
                 callbacks: {
-                  label: (ctx) => `${ctx.label}: ${ctx.raw.toFixed(2)}`,
+                  label: (ctx) => `${ctx.label}: ${formatAmount(ctx.raw)}`,
                 },
               },
             },
@@ -119,7 +122,7 @@ const SummaryWidget = ({ selectedDate }) => {
             fontWeight={700}
             color={net >= 0 ? "success.main" : "error.main"}
           >
-            {net.toFixed(2)}
+            {formatAmount(net)}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             Net
@@ -131,13 +134,13 @@ const SummaryWidget = ({ selectedDate }) => {
         <Box display="flex" alignItems="center" gap={1}>
           <TrendingUp color="success" />
           <Typography variant="body2">
-            <strong>Income:</strong> {summary.totalIncome.toFixed(2)}
+            <strong>Income:</strong> {formatAmount(summary.totalIncome)}
           </Typography>
         </Box>
         <Box display="flex" alignItems="center" gap={1}>
           <TrendingDown color="error" />
           <Typography variant="body2">
-            <strong>Expenses:</strong> {summary.totalExpense.toFixed(2)}
+            <strong>Expenses:</strong> {formatAmount(summary.totalExpense)}
           </Typography>
         </Box>
       </Stack>

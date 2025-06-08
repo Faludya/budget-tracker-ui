@@ -10,11 +10,13 @@ import {
 } from "@mui/material";
 import { Category } from "@mui/icons-material";
 import apiClient from "../../api/axiosConfig";
+import { useUserPreferences } from "../../contexts/UserPreferencesContext";
 
 const TopExpensesWidget = ({ selectedDate }) => {
   const [topExpenses, setTopExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
+  const { preferences } = useUserPreferences();
 
   useEffect(() => {
     const fetchTopExpenses = async () => {
@@ -37,10 +39,17 @@ const TopExpensesWidget = ({ selectedDate }) => {
       }
     };
 
-    if (selectedDate?.isValid?.()) {
+    if (selectedDate?.isValid?.() && preferences?.preferredCurrency) {
       fetchTopExpenses();
     }
-  }, [selectedDate]);
+  }, [selectedDate, preferences?.preferredCurrency]);
+
+  const currency = preferences?.currencySymbol || "";
+
+  const formatAmount = (amount) =>
+    `${currency} ${amount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+    })}`;
 
   return (
     <Paper elevation={3} sx={{ p: 3, borderRadius: 3, minHeight: 260 }}>
@@ -65,12 +74,8 @@ const TopExpensesWidget = ({ selectedDate }) => {
                   <Category fontSize="small" />
                   <Typography variant="body2">{item.category}</Typography>
                 </Stack>
-                <Typography
-                  variant="body2"
-                  fontWeight={500}
-                  color="text.secondary"
-                >
-                  {item.amount.toFixed(2)} ({item.percentage.toFixed(1)}%)
+                <Typography variant="body2" fontWeight={500} color="text.secondary">
+                  {formatAmount(item.amount)} ({item.percentage.toFixed(1)}%)
                 </Typography>
               </Stack>
 

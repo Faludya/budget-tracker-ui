@@ -14,6 +14,7 @@ import Categories from "./pages/Categories";
 import BudgetTemplateSelection from "./pages/BudgetTemplateSelection";
 import UserProfilePage from "./pages/UserProfilePage";
 import ImportReview from "./components/ImportReview"
+import KeywordMappingPage from "./components/KeywordMappingPage"; 
 import GoogleAuthCallback from "./pages/GoogleAuthCallback";
 import { UserPreferencesProvider } from "./contexts/UserPreferencesContext";
 import { TransactionProvider } from "./contexts/TransactionContext";
@@ -58,6 +59,7 @@ function App() {
                       <Route path="/privacy" element={<Privacy />} />
                       <Route path="/contactus" element={<ContactUs />} />
                       <Route path="/import/review" element={<ImportReview />} />
+                      <Route path="/keyword-mappings" element={<KeywordMappingPage />} />
                       <Route path="/budget/setup" element={<BudgetTemplateSelection />} />
                       <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
