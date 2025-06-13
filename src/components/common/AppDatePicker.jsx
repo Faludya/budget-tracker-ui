@@ -4,7 +4,7 @@ import { DatePicker } from "@mui/x-date-pickers";
 import { CalendarMonth } from "@mui/icons-material";
 import dayjs from "dayjs";
 
-const AppDatePicker = ({ label, value, onChange, views = ["year", "month", "day"], format = "DD/MM/YYYY" }) => {
+const AppDatePicker = ({ label, value, onChange, name, views = ["year", "month", "day"], format = "DD/MM/YYYY" }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -29,7 +29,7 @@ const AppDatePicker = ({ label, value, onChange, views = ["year", "month", "day"
         onClose={() => setOpen(false)}
         value={value ? dayjs(value) : null}
         onChange={(newVal) =>
-          onChange({ target: { name: "date", value: newVal?.isValid?.() ? newVal.toISOString() : "" } })
+          onChange({ target: { name , value: newVal?.isValid?.() ? newVal.toISOString() : "" } })
         }
          views={views} 
         format={format}

@@ -28,7 +28,6 @@ import AppInput from "../components/common/AppInput";
 import AppDatePicker from "../components/common/AppDatePicker";
 import AppSelect from "../components/common/AppSelect";
 import { useUserContext } from "../contexts/UserContext";
-import dayjs from "dayjs";
 import apiClient from "../api/axiosConfig";
 
 const UserProfilePage = () => {
@@ -79,11 +78,6 @@ const UserProfilePage = () => {
     setPrefData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleDateChange = (date) => {
-    const formatted =
-      date && dayjs(date).isValid() ? new Date(date).toISOString() : null;
-    setFormData((prev) => ({ ...prev, dateOfBirth: formatted }));
-  };
 
   const handleSave = async () => {
     try {
@@ -248,10 +242,17 @@ const UserProfilePage = () => {
                   label="Date of Birth"
                   name="dateOfBirth"
                   value={formData.dateOfBirth}
-                  onChange={handleDateChange}
+                  onChange={({ target }) => {
+                    const { name, value } = target;
+                    console.log("📅 Date changed:", name, value);
+                    setFormData((prev) => ({ ...prev, [name]: value }));
+                  }}
                   format={preferences?.dateFormat}
                   icon={<CalendarToday />}
                 />
+
+
+
               </Stack>
               <AppInput
                 label="Address"

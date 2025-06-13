@@ -41,14 +41,16 @@ const SortableItem = ({ id, children }) => {
 };
 
 const DashboardLayout = ({ widgets, initialOrder, onOrderChange }) => {
-  const defaultOrder = widgets.map((w) => w.id);
-  const [order, setOrder] = useState(initialOrder?.length ? initialOrder : defaultOrder);
+  const [order, setOrder] = useState([]);
 
   useEffect(() => {
     if (initialOrder?.length) {
       setOrder(initialOrder);
+    } else {
+      setOrder(widgets.map(w => w.id));
     }
-  }, [initialOrder]);
+  }, [initialOrder, widgets]);
+
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -63,16 +65,22 @@ const DashboardLayout = ({ widgets, initialOrder, onOrderChange }) => {
     }
   };
 
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={order} strategy={verticalListSortingStrategy}>
         <Box display="flex" flexWrap="wrap" gap={3} justifyContent="flex-start" alignItems="flex-start">
           {order.map((id, index) => {
+            console.log(`🔢 Rendering widget: ${id} at index ${index}`);
+
             const widget = widgets.find((w) => w.id === id);
-            if (!widget) return null;
+            if (!widget) {
+              console.warn(`⚠️ Widget not found for ID: ${id}`);
+              return null;
+            }
 
             const boxProps =
-              index < 3
+              index < 6
                 ? { flex: "1 1 300px", maxWidth: 370 }
                 : { flex: "1 1 480px", maxWidth: "calc(50% - 16px)" };
 

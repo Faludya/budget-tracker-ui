@@ -149,21 +149,21 @@ const TransactionsTable = () => {
     fetchFilteredTransactions(sanitized);
   };
 
-const resetFilters = () => {
-  const reset = {
-    fromDate: dayjs().startOf("month"),
-    toDate: dayjs().endOf("month"),
-    amountMin: "",
-    amountMax: "",
-    categoryId: "",
-    type: "",
-    description: "",
-  };
+  const resetFilters = () => {
+    const reset = {
+      fromDate: dayjs().startOf("month"),
+      toDate: dayjs().endOf("month"),
+      amountMin: "",
+      amountMax: "",
+      categoryId: "",
+      type: "",
+      description: "",
+    };
 
-  setFilters(reset);
-  localStorage.removeItem(FILTERS_STORAGE_KEY);
-  fetchFilteredTransactions(reset);
-};
+    setFilters(reset);
+    localStorage.removeItem(FILTERS_STORAGE_KEY);
+    fetchFilteredTransactions(reset);
+  };
 
 
   const handleConfirmDelete = async (id) => {
@@ -257,33 +257,33 @@ const resetFilters = () => {
 
       <Stack spacing={2} mb={4}>
         <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-<AppDatePicker
-  label="From"
-  name="fromDate"
-  value={filters.fromDate}
-  onChange={({ target }) => {
-    const date = dayjs(target.value);
-    if (date.isValid()) {
-      updateFilters({ ...filters, fromDate: date });
-    }
-  }}
-  format={preferences?.dateFormat}
-  icon={<CalendarMonth />}
-/>
+          <AppDatePicker
+            label="From"
+            name="fromDate"
+            value={filters.fromDate}
+            onChange={({ target }) => {
+              const date = dayjs(target.value);
+              if (date.isValid()) {
+                updateFilters({ ...filters, fromDate: date });
+              }
+            }}
+            format={preferences?.dateFormat}
+            icon={<CalendarMonth />}
+          />
 
-<AppDatePicker
-  label="To"
-  name="toDate"
-  value={filters.toDate}
-  onChange={({ target }) => {
-    const date = dayjs(target.value);
-    if (date.isValid()) {
-      updateFilters({ ...filters, toDate: date });
-    }
-  }}
-  format={preferences?.dateFormat}
-  icon={<CalendarMonth />}
-/>
+          <AppDatePicker
+            label="To"
+            name="toDate"
+            value={filters.toDate}
+            onChange={({ target }) => {
+              const date = dayjs(target.value);
+              if (date.isValid()) {
+                updateFilters({ ...filters, toDate: date });
+              }
+            }}
+            format={preferences?.dateFormat}
+            icon={<CalendarMonth />}
+          />
 
 
 
@@ -355,7 +355,7 @@ const resetFilters = () => {
 
       <AppTable rows={transactions} columns={columns} pageSize={5} autoHeight loading={loading} />
 
-      <AppModal open={open} title={formData.id ? "Edit Transaction" : "Add Transaction"} onClose={handleClose} onSave={handleSubmit}>
+      <AppModal open={open} title={formData.id ? "Edit Transaction" : "Add Transaction"} onClose={handleClose} onSave={async () => { await handleSubmit(); await fetchFilteredTransactions(filters); }}>
         <Typography fontWeight={500} fontSize="0.9rem" mb={0.5}>Type</Typography>
         <RadioGroup row name="type" value={formData.type} onChange={handleChange}>
           <FormControlLabel value="Debit" control={<Radio />} label="Debit" />

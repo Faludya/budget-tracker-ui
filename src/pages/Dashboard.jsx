@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Typography, Box, Stack } from "@mui/material";
 import dayjs from "dayjs";
 import SummaryWidget from "../components/dashboard/SummaryWidget";
@@ -8,10 +8,11 @@ import BudgetVsActualWidget from "../components/dashboard/BudgetVsActualWidget";
 import BudgetUsageByCategoryChart from "../components/dashboard/BudgetUsageByCategoryChart";
 import OverspentCategoriesCard from "../components/dashboard/OverspentCategoriesCard";
 import BudgetHealthSummary from "../components/dashboard/BudgetHealthSummary";
+import CurrencyHistoryWidget from "../components/dashboard/CurrencyHistoryWidget";
 import DashboardLayout from "../components/dashboard/DashboardLayout";
 import AppDatePicker from "../components/common/AppDatePicker";
-import { useUserPreferences } from "../contexts/UserPreferencesContext";
 import apiClient from "../api/axiosConfig";
+
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [userLayout, setUserLayout] = useState(null);
@@ -22,27 +23,19 @@ const Dashboard = () => {
       await apiClient.post("/dashboard-layout", { widgetOrder: newOrder });
       setUserLayout((prev) => ({ ...prev, widgetOrder: newOrder }));
     } catch (err) {
-      console.error("Failed to update widget order:", err);
     }
   };
 
-  const allWidgets = [
+  const allWidgets = useMemo(() => [
     { id: "summary", component: <SummaryWidget selectedDate={selectedDate} /> },
     { id: "top-expenses", component: <TopExpensesWidget selectedDate={selectedDate} /> },
     { id: "monthly-expenses", component: <MonthlyExpensesChart selectedDate={selectedDate} /> },
     { id: "budget-vs-actual", component: <BudgetVsActualWidget selectedDate={selectedDate} /> },
     { id: "budget-usage", component: <BudgetUsageByCategoryChart selectedDate={selectedDate} /> },
     { id: "overspent", component: <OverspentCategoriesCard selectedDate={selectedDate} /> },
+    { id: "currency-history", component: <CurrencyHistoryWidget /> },
     { id: "health", component: <BudgetHealthSummary selectedDate={selectedDate} /> },
-  ];
-
-  const getOrderedWidgets = () => {
-    if (!userLayout?.widgetOrder?.length) return allWidgets;
-    const orderMap = new Map(allWidgets.map((w) => [w.id, w]));
-    return userLayout.widgetOrder
-      .map((id) => orderMap.get(id))
-      .filter(Boolean);
-  };
+  ], [selectedDate]);
 
   useEffect(() => {
     const fetchLayout = async () => {
@@ -50,9 +43,10 @@ const Dashboard = () => {
         const res = await apiClient.get("/dashboard-layout", {
           headers: { userId: localStorage.getItem("userId") },
         });
-        setUserLayout(res.data);
+
+        setUserLayout({ widgetOrder: res.data });
       } catch (err) {
-        console.error("Failed to fetch layout", err);
+          console.error("[CurrencyHistoryWidget] Fetch failed:", err.response?.data || err.message);
       } finally {
         setLoadingLayout(false);
       }
@@ -61,7 +55,17 @@ const Dashboard = () => {
     fetchLayout();
   }, []);
 
-  if (loadingLayout) return null;
+
+  const isLayoutReady = userLayout?.widgetOrder?.length > 0;
+
+  if (loadingLayout || !isLayoutReady) {
+    return <Typography>Loading layout...</Typography>;
+  }
+
+  console.log("📥 Dashboard ready. Passing to layout:", {
+    initialOrder: userLayout.widgetOrder,
+    allWidgets: allWidgets.map(w => w.id),
+  });
 
   return (
     <Box p={3}>
@@ -82,7 +86,9 @@ const Dashboard = () => {
       </Stack>
 
       <DashboardLayout
-        widgets={getOrderedWidgets()}
+        key={userLayout.widgetOrder.join('-')}
+        widgets={allWidgets}
+        initialOrder={userLayout.widgetOrder}
         onOrderChange={handleOrderChange}
       />
     </Box>

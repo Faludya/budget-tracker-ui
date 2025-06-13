@@ -17,9 +17,11 @@ import { styled } from "@mui/system";
 import AppSelect from "../common/AppSelect";
 
 const importTemplates = [
-  { id: "Revolut", name: "Revolut" },
-  { id: "Raiffeisen", name: "Raiffeisen" },
-  { id: "BCR", name: "BCR" },
+  { id: "Revolut", name: "Revolut (CSV)" },
+  { id: "Raiffeisen", name: "Raiffeisen (Excel)" },
+  { id: "bcr-pdf", name: "BCR (PDF)" },
+  { id: "ing-csv", name: "ING (CSV)" },
+  { id: "ing-excel", name: "ING (Excel)" },
 ];
 
 const DropArea = styled("div")(({ theme, isDragging }) => ({
@@ -29,7 +31,7 @@ const DropArea = styled("div")(({ theme, isDragging }) => ({
   textAlign: "center",
   cursor: "pointer",
   backgroundColor: isDragging ? "#f0f4ff" : "#fafafa",
-  transition: "background-color 0.3s ease, border 0.3s ease",
+   transition: "background-color 0.3s ease, border 0.3s ease",
   borderColor: isDragging ? theme.palette.primary.main : "#aaa",
 }));
 

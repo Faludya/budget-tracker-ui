@@ -4,7 +4,6 @@ import {
   CardContent,
   Typography,
   useTheme,
-  Tooltip,
 } from "@mui/material";
 import {
   ResponsiveContainer,
@@ -14,6 +13,7 @@ import {
   CartesianGrid,
   Bar,
   Legend,
+  Tooltip,
 } from "recharts";
 import apiClient from "../../api/axiosConfig";
 import PropTypes from "prop-types";
