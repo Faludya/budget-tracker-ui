@@ -19,6 +19,7 @@ import { FiPhone, FiMail, FiClock, FiMapPin } from "react-icons/fi";
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram } from "react-icons/fa";
 import Confetti from "react-confetti";
 import Typewriter from "typewriter-effect";
+import emailjs from "emailjs-com";
 
 import AppInput from "../components/common/AppInput";
 import AppMultilineInput from "../components/common/AppAutoTextarea";
@@ -73,16 +74,16 @@ const ContactUs = () => {
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulated API call
+      await emailjs.send("service_gnssehg","template_xsrgmvr", formData, "b4GqAAaJbntVTM349" );
+      await emailjs.send("service_gnssehg","template_4b42tdm", formData, "b4GqAAaJbntVTM349" );
 
       setConfetti(true);
-      setSuccessModalOpen(true); // ✅ Open modal
-      setFormData(initialFormData); // ✅ Clear form
-
-      setTimeout(() => setConfetti(false), 8000); // ✅ Longer confetti
+      setSuccessModalOpen(true);
+      setFormData(initialFormData);
+      setTimeout(() => setConfetti(false), 8000);
     } catch (error) {
-      console.error("Submission failed:", error);
-      // Optionally handle error UI
+      console.error("Failed to send message:", error);
+      alert("Something went wrong. Please try again later.");
     } finally {
       setLoading(false);
     }

@@ -35,12 +35,11 @@ import AppModal from "../../components/common/AppModal";
 import AppSelect from "../../components/common/AppSelect";
 import apiClient from "../../api/axiosConfig";
 
-const iconOptions = [
-  "Home", "Fastfood", "ShoppingCart", "CarRental", "Category",
-  "Work", "Pets", "FitnessCenter", "HealthAndSafety",
-  "LocalHospital", "LocalGroceryStore", "DirectionsBus", "Restaurant",
-  "LocalCafe", "EmojiEvents", "School", "Savings", "ElectricBolt"
+const iconOptions = [ "Home", "Fastfood", "ShoppingCart", "CarRental", "Category", "Work", "Pets", "FitnessCenter", "HealthAndSafety", "LocalHospital", "LocalGroceryStore", 
+  "DirectionsBus", "Restaurant", "LocalCafe", "EmojiEvents", "School", "Savings", "ElectricBolt", "Subscriptions", "Commute", "AttachMoney", "SportsEsports", "Flight", "Gift", 
+  "LocalBar", "MusicNote", "PhoneIphone", "LaptopMac", "LocalFlorist", "ChildCare", "Build"
 ];
+
 
 const IconGrid = ({ selected, onSelect }) => (
   <Grid container spacing={1} sx={{ maxHeight: 180, overflowY: "auto", p: 1 }}>
