@@ -3,12 +3,10 @@ import {
   Card,
   CardContent,
   Typography,
-  Alert,
-  List,
-  ListItem,
-  ListItemText,
   CircularProgress,
   Box,
+  Stack,
+  Chip,
 } from "@mui/material";
 import apiClient from "../../api/axiosConfig";
 import PropTypes from "prop-types";
@@ -45,32 +43,50 @@ const OverspentCategoriesCard = ({ selectedDate }) => {
   }, [selectedDate, preferences?.preferredCurrency]);
 
   return (
-    <Card>
-      <CardContent>
+    <Card sx={{ height: "100%" }}>
+      <CardContent >
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
           Overspent Categories
         </Typography>
 
         {isLoading ? (
-          <Box height={120} display="flex" alignItems="center" justifyContent="center">
-            <CircularProgress />
+          <Box height={60} display="flex" alignItems="center" justifyContent="center">
+            <CircularProgress size={22} />
           </Box>
         ) : overspentCategories.length === 0 ? (
-          <Alert severity="success">No overspending this month. Great job! 🎉</Alert>
+          <Typography variant="body2" color="success.main">
+            🎉 No overspending this month.
+          </Typography>
         ) : (
-          <>
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              You've exceeded your budget in {overspentCategories.length}{" "}
-              {overspentCategories.length === 1 ? "category" : "categories"}.
-            </Alert>
-            <List dense disablePadding>
-              {overspentCategories.map((name, index) => (
-                <ListItem key={index}>
-                  <ListItemText primary={name} />
-                </ListItem>
-              ))}
-            </List>
-          </>
+          <Box
+            display="flex"
+            flexWrap="wrap"
+            gap={1}
+            rowGap={1.2}
+            alignItems="flex-start"
+          >
+            {overspentCategories.map((name, index) => (
+              <Chip
+                key={index}
+                label={name}
+                size="small"
+                variant="outlined"
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: 500,
+                  color: "primary.main",
+                  borderColor: "primary.main",
+                  backgroundColor: "rgba(33, 150, 243, 0.05)", // soft primary background
+                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)", // subtle shadow for elevation
+                  "& .MuiChip-label": {
+                    px: 1.5,
+                    py: 0.25,
+                  },
+                }}
+              />
+
+            ))}
+          </Box>
         )}
       </CardContent>
     </Card>

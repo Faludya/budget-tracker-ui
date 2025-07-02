@@ -66,6 +66,7 @@ const SignInContainer = styled(Box)(({ theme }) => ({
 
 
 export default function SignIn(props) {
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [open, setOpen] = useState(false);
@@ -101,8 +102,7 @@ export default function SignIn(props) {
     setLoading(true);
 
     try {
-      //const response = await axios.post("https://budget-api-23868837402.europe-central2.run.app/api/users/login", credentials);
-      const response = await axios.post("https://localhost:7288/api/users/login", credentials);
+      const response = await axios.post(`${API_BASE_URL}/users/login`, credentials)
       const { token, userId } = response.data;
 
       if (token) {
@@ -127,10 +127,12 @@ export default function SignIn(props) {
   };
 
   const handleGoogleLogin = () => {
-    const backendUrl = "https://localhost:7288"; // API base URL
-    const returnUrl = "http://localhost:3000/google-auth"; // Callback page
+    const backendUrl = process.env.REACT_APP_API_BASE_URL?.replace("/api", "");
+    const returnUrl = `${window.location.origin}/google-auth`;
+
     window.location.href = `${backendUrl}/api/users/login-google?returnUrl=${encodeURIComponent(returnUrl)}`;
   };
+
 
   return (
     <AppTheme {...props}>

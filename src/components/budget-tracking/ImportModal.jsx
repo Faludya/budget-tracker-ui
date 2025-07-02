@@ -19,7 +19,7 @@ import AppSelect from "../common/AppSelect";
 const importTemplates = [
   { id: "Revolut", name: "Revolut (CSV)" },
   { id: "Raiffeisen", name: "Raiffeisen (Excel)" },
-  { id: "bcr-pdf", name: "BCR (PDF)" },
+  { id: "brd-pdf", name: "BRD (PDF)" },
   { id: "ing-csv", name: "ING (CSV)" },
   { id: "ing-excel", name: "ING (Excel)" },
 ];
@@ -43,13 +43,13 @@ const ImportModal = ({ open, onClose, onContinue }) => {
   const [error, setError] = useState("");
 
   const validateFileType = (filename) => {
-    return /\.(csv|xlsx)$/i.test(filename);
+    return /\.(csv|xlsx|pdf)$/i.test(filename);
   };
 
   const handleFileSelect = (e) => {
     const uploadedFile = e.target.files[0];
     if (uploadedFile && !validateFileType(uploadedFile.name)) {
-      setError("Invalid file format. Please upload a .csv or .xlsx file.");
+      setError("Invalid file format. Please upload a .csv, .xlsx or .pdf file.");
       setFile(null);
     } else {
       setFile(uploadedFile);
@@ -125,7 +125,7 @@ const ImportModal = ({ open, onClose, onContinue }) => {
           >
             <DropArea isDragging={isDragging}>
               <Typography>
-                {file ? `Selected file: ${file.name}` : "Drag & drop or click to select a .csv or .xlsx file"}
+                {file ? `Selected file: ${file.name}` : "Drag & drop or click to select a .csv, .xlsx or .pdf file"}
               </Typography>
               {error && (
                 <Box mt={2} p={2} border="1px solid red" borderRadius={2} bgcolor="#ffe5e5">
@@ -136,7 +136,7 @@ const ImportModal = ({ open, onClose, onContinue }) => {
               <input
                 id="fileInput"
                 type="file"
-                accept=".csv,.xlsx"
+                accept=".csv,.xlsx,.pdf"
                 onChange={handleFileSelect}
                 style={{ display: "none" }}
               />

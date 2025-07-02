@@ -119,9 +119,7 @@ const BudgetTemplateSelection = () => {
     }
   };
 
-  const manualLimits =
-    appliedBudget?.budgetItems?.filter((i) => i.categoryId !== null) ?? [];
-
+const manualLimits = appliedBudget?.budgetItems?.filter( (i) => i.categoryId !== null) ?? [];
   const breakdownItems = selectedTemplate?.items?.map((item) => {
     const amount = Number(
       ((item?.percentage || 0) * parseFloat(monthlyIncome || "0")) / 100

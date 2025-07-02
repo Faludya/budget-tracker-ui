@@ -13,14 +13,15 @@ import {
   DialogTitle,
   Snackbar,
   Alert,
+  Tooltip,
 } from "@mui/material";
 import AppSelect from "../common/AppSelect";
 import AppInput from "../common/AppInput";
 import apiClient from "../../api/axiosConfig";
-import { Delete, Edit, MoreVert } from "@mui/icons-material";
+import { Delete, Edit, MoreVert, WarningAmberRounded } from "@mui/icons-material";
 import CategoryIcon from "@mui/icons-material/Category";
 
-const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selectedTemplate, currencySymbol = "RON" }) => {
+const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selectedTemplate, currencySymbol = "EUR" }) => {
   const [categories, setCategories] = useState([]);
   const [categoryId, setCategoryId] = useState(null);
   const [limit, setLimit] = useState("");
@@ -59,13 +60,18 @@ const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selecte
 
   const groupedLimits = useMemo(() => {
     const groups = {};
+
+    // Always include template-defined groups
     for (const group of templateGroups) {
       groups[group] = [];
     }
 
+    // Add category-level limits to those groups
     for (const item of manualLimits) {
+      if (!item.categoryId) continue; // skip group-level item
       const key = item.categoryType;
-      if (key && groups.hasOwnProperty(key)) {
+      if (key) {
+        if (!groups[key]) groups[key] = [];
         groups[key].push(item);
       }
     }
@@ -186,15 +192,21 @@ const AddCategoryLimit = ({ userId, month, manualLimits, onBudgetUpdate, selecte
       </Stack>
 
       <Box display="flex" flexWrap="wrap" gap={2}>
-        {Object.entries(groupedLimits).map(([group, items]) => {
+        {Object.entries(groupedLimits).map(([groupKey, items]) => {
           const total = items.reduce((sum, i) => sum + (i.convertedLimit ?? i.limit), 0);
+          const groupLimitItem = selectedTemplate?.items?.find(i => i.categoryType === groupKey);
+          const groupLimit = groupLimitItem?.convertedAmount ?? groupLimitItem?.amount ?? null;
+          const isOverBudget = groupLimit !== null && total > groupLimit;
+
           return (
-            <Box
-              key={group}
-              sx={{ flex: "1 1 300px", borderRadius: 2, p: 2, bgcolor: "#f8f9fc", boxShadow: 1 }}
-            >
-              <Typography fontWeight="bold" fontSize="1.05rem" mb={1}>
-                {group} — {total.toFixed(2)} {currencySymbol}
+            <Box key={groupKey} sx={{ flex: "1 1 300px", borderRadius: 2, p: 2, bgcolor: "#f8f9fc", boxShadow: 1 }}>
+              <Typography fontWeight="bold" fontSize="1.05rem" mb={1} display="flex" alignItems="center">
+                {groupKey} — {total.toFixed(2)} {currencySymbol}
+                {isOverBudget && (
+                  <Tooltip title="Over group budget limit">
+                    <WarningAmberRounded color="warning" sx={{ ml: 1, fontSize: 18 }} />
+                  </Tooltip>
+                )}
               </Typography>
               <ul style={{ marginTop: 0, paddingLeft: 20, color: "#444" }}>
                 {items
