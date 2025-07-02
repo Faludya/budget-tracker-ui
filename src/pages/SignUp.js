@@ -98,7 +98,13 @@ export default function SignUp(props) {
 
     try {
       // Register
-      await axios.post(`${API_BASE_URL}/users/register`, formData);
+      await axios.post(`${API_BASE_URL}/users/register`, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+      });
+
 
       // Auto-login
       const responseLogin = await axios.post(`${API_BASE_URL}/users/login`, {
